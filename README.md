@@ -34,6 +34,7 @@ explore options for serving private content via [CloudFront](https://aws.amazon.
 * [aws-samples/cloudfront-authorization-at-edge](https://github.com/aws-samples/cloudfront-authorization-at-edge)
 * [CloudFront Signed Cookies Keeping Session State for API Gateway Access](https://stackoverflow.com/questions/45250493/cloudfront-signed-cookies-keeping-session-state-for-api-gateway-access)
 * [h-arora/aws-cloudfront-cookie-signer](https://github.com/h-arora/aws-cloudfront-cookie-signer)
+* [pfeilbr/azure-pipelines-playground](https://github.com/pfeilbr/azure-pipelines-playground) - specifically CloudFormation template @ [azure-pipelines-playground/cfn-templates/resources.yaml](https://github.com/pfeilbr/azure-pipelines-playground/blob/master/cfn-templates/resources.yaml)
 * [pfeilbr/aws-cognito-playground](https://github.com/pfeilbr/aws-cognito-playground)
 * [pfeilbr/cognito-federated-to-salesforce-and-s3-presigned-url-playground](https://github.com/pfeilbr/cognito-federated-to-salesforce-and-s3-presigned-url-playground)
 
