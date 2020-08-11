@@ -51,7 +51,7 @@ This infrastructure provisioning and deployment pipeline performs an atomic depl
 * configure CloudFront Error pages to redirect to cognito login URL
 * move `LambdaEdgeLoginFunction` out of template to individual directory and use SAM to deploy
 * cognito federated sso to auth0 saml2. see [Set up Auth0 as a SAML Identity Provider with an Amazon Cognito User Pool](https://aws.amazon.com/premiumsupport/knowledge-center/auth0-saml-cognito-user-pool/)
-* add "logout" link that removes cloudfront signed cookies
+* add "logout" link that removes cloudfront signed cookies.  must do from server-side as client-side javascript can't access the cookies.  see [Correct way to delete cookies server-side](https://stackoverflow.com/questions/5285940/correct-way-to-delete-cookies-server-side#answer-53573622)
 * define as [AWS Service Catalog](https://aws.amazon.com/servicecatalog/) product using CloudFormation.  See [AWS CloudFormation support for AWS Service Catalog products | AWS Management & Governance Blog](https://aws.amazon.com/blogs/mt/how-to-launch-secure-and-governed-aws-resources-with-aws-cloudformation-and-aws-service-catalog/)
 
 ## Resources
