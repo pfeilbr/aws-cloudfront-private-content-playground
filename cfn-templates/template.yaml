@@ -1,0 +1,1007 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Creates a stack for a static website using CloudFormation and S3 plus CI/CD
+  automation user to handle publishing workflow
+
+Parameters:
+
+  DomainName:
+    Type: String
+    Description: The domain name.
+    Default: allthecloudbits.com
+
+  StagingDomainName:
+    Type: String
+    Description: The domain name.
+    Default: staging.allthecloudbits.com
+
+  LoginPageRelativePath:
+    Type: String
+    Description: >
+      The relative URL path of the login page.  This page must be exposed publicly. 
+    Default: "/login"    
+
+  ApiDomainName:
+    Type: String
+    Description: The API domain name.
+    Default: httpbin.org
+
+  DistributionOriginPath:
+    Type: String
+    Description: >
+      The CloudFront distribution origin points to this prefix path within the
+      website bucket
+    Default: "/v0.0.1"
+
+  SecretReferer:
+    Type: String
+    Description: >
+      A secret Referer header set in the CloudFront distribution.  The S3
+      bucket policy only alows requests that include this Referer value.
+      This blocks direct requests to the S3 bucket website URL(s).
+    Default: "79011a81-c048-4877-84f4-efe9577d7250"
+
+  AutomationUserPassword:
+    NoEcho: 'true'
+    Type: String
+    Description: automation user account password
+    MinLength: '1'
+    MaxLength: '41'
+    ConstraintDescription: the password must be between 1 and 41 characters
+
+Resources:
+
+  S3BucketForStagingWebsiteContent:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "staging-bucket.${DomainName}"
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+        RoutingRules:
+          - RedirectRule:
+              HostName: !Sub "${StagingDomainName}"
+#              HttpRedirectCode: "307"
+              Protocol: https
+              ReplaceKeyWith: ""
+            RoutingRuleCondition:
+              HttpErrorCodeReturnedEquals: "403"        
+          - RedirectRule:
+              HostName: !Sub "${StagingDomainName}"
+#              HttpRedirectCode: "307"
+              Protocol: https
+              ReplaceKeyWith: ""
+            RoutingRuleCondition:
+              HttpErrorCodeReturnedEquals: "404"    
+
+  S3BucketForWebsiteContent:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+        RoutingRules:
+          - RedirectRule:
+              HostName: !Sub "${DomainName}"
+#              HttpRedirectCode: "307"
+              Protocol: https
+              ReplaceKeyWith: ""
+            RoutingRuleCondition:
+              HttpErrorCodeReturnedEquals: "403"        
+          - RedirectRule:
+              HostName: !Sub "${DomainName}"
+#              HttpRedirectCode: "307"
+              Protocol: https
+              ReplaceKeyWith: ""
+            RoutingRuleCondition:
+              HttpErrorCodeReturnedEquals: "404"        
+
+
+  CloudFrontLogsBucket:
+    Type: "AWS::S3::Bucket"
+
+  Cert:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Sub "*.${DomainName}"
+      SubjectAlternativeNames:
+        - !Ref DomainName
+      DomainValidationOptions:
+        - DomainName: !Ref DomainName
+          ValidationDomain: !Ref DomainName
+      ValidationMethod: DNS
+
+  StagingWebsiteDistribution:
+    Type: "AWS::CloudFront::Distribution"
+    Properties:
+      DistributionConfig:
+        WebACLId: !Sub "${CloudFrontWebACL.Arn}"
+        Aliases:
+          - !Sub "${StagingDomainName}"
+        DefaultCacheBehavior:
+          TargetOriginId: "WebsiteBucketOrigin"
+          ViewerProtocolPolicy: "redirect-to-https"
+          DefaultTTL: 600 # ten minutes
+          MaxTTL: 600 # ten minutes
+          Compress: true
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: "none"
+          LambdaFunctionAssociations:
+            -
+              EventType: viewer-request
+              LambdaFunctionARN: !Ref LambdaEdgeAuthFunction.Version
+        CacheBehaviors:
+        - PathPattern: /api/*
+          AllowedMethods:
+          - DELETE
+          - GET
+          - HEAD
+          - OPTIONS
+          - PATCH
+          - POST
+          - PUT
+          DefaultTTL: 0
+          MaxTTL: 0
+          MinTTL: 0
+          ForwardedValues:
+            QueryString: true
+            Headers:
+            - Access-Control-Request-Headers
+            - Access-Control-Request-Method
+            - Origin
+            - Authorization
+            # - Host APIG needs to use SNI
+            Cookies:
+              Forward: all
+          TargetOriginId: ApiOrigin
+          ViewerProtocolPolicy: https-only
+          Compress: true              
+        DefaultRootObject: "index.html"
+        Logging:
+          IncludeCookies: "false"
+          Bucket: !GetAtt CloudFrontLogsBucket.DomainName
+          Prefix: !Sub "cloudfront/logs/${StagingDomainName}"
+        Enabled: true
+        PriceClass: "PriceClass_100" # "PriceClass_All"
+        HttpVersion: "http2"
+        ViewerCertificate:
+#          CloudFrontDefaultCertificate: true
+          AcmCertificateArn: !Ref Cert
+          MinimumProtocolVersion: TLSv1
+          SslSupportMethod: sni-only          
+        Origins:
+          - Id: "WebsiteBucketOrigin"
+            DomainName: !Sub "${S3BucketForStagingWebsiteContent}.s3-website-${AWS::Region}.amazonaws.com"
+            OriginPath: !Sub "${DistributionOriginPath}"
+            CustomOriginConfig:
+              HTTPPort: '80'
+              HTTPSPort: '443'     
+              OriginProtocolPolicy: 'http-only'       
+            OriginCustomHeaders:
+              - HeaderName: Referer
+                HeaderValue: !Sub "${SecretReferer}"
+          - Id: "ApiOrigin"
+            DomainName: !Sub "${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com"
+            OriginPath: !Sub "/Prod"
+            CustomOriginConfig:
+              HTTPPort: '80'
+              HTTPSPort: '443'     
+              OriginProtocolPolicy: 'https-only'
+              OriginSSLProtocols:
+              - "TLSv1.2"
+
+          # - Id: "WebsiteBucketOrigin"
+          #   DomainName: !Sub "${S3BucketForWebsiteContent}.s3-website-${AWS::Region}.amazonaws.com"
+          #   OriginPath: !Sub "${DistributionOriginPath}"
+          #   OriginCustomHeaders:
+          #     - HeaderName: Referer
+          #       HeaderValue: !Sub "${SecretReferer}"
+          #   S3OriginConfig: {}
+            #   OriginAccessIdentity:
+            #     Fn::Join:
+            #       - ""
+            #       - - "origin-access-identity/cloudfront/"
+            #         - Ref: "CloudFrontOriginAccessIdentity"
+    DependsOn:
+      - S3BucketForStagingWebsiteContent
+      - CloudFrontLogsBucket
+
+
+  WebsiteDistribution:
+    Type: "AWS::CloudFront::Distribution"
+    Properties:
+      DistributionConfig:
+        WebACLId: !Sub "${CloudFrontWebACL.Arn}"
+        Aliases:
+          - !Ref DomainName   
+          - !Sub "www.${DomainName}"   
+        DefaultCacheBehavior:
+          TargetOriginId: "WebsiteBucketOrigin"
+          ViewerProtocolPolicy: "redirect-to-https"
+          DefaultTTL: 600 # ten minutes
+          MaxTTL: 600 # ten minutes
+          Compress: true
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: "none"
+
+          TrustedSigners:
+            - self              
+          # !Sub "${AWS::AccountId}""
+          # LambdaFunctionAssociations:
+          #   -
+          #     EventType: viewer-request
+          #     LambdaFunctionARN: !Ref LambdaEdgeAuthFunction.Version
+
+        CacheBehaviors:
+        - PathPattern: !Sub "${LoginPageRelativePath}/*"
+          AllowedMethods:
+          - DELETE
+          - GET
+          - HEAD
+          - OPTIONS
+          - PATCH
+          - POST
+          - PUT
+          DefaultTTL: 0
+          MaxTTL: 0
+          MinTTL: 0
+          ForwardedValues:
+            QueryString: true
+            Headers:
+            - Access-Control-Request-Headers
+            - Access-Control-Request-Method
+            - Origin
+            - Authorization
+            # - Host APIG needs to use SNI
+            Cookies:
+              Forward: all
+          TargetOriginId: WebsiteBucketLoginOrigin
+          ViewerProtocolPolicy: https-only
+          Compress: true
+          LambdaFunctionAssociations:
+            -
+              EventType: viewer-request
+              LambdaFunctionARN: !Ref LambdaEdgeLoginFunction.Version
+
+        - PathPattern: /api/*
+          AllowedMethods:
+          - DELETE
+          - GET
+          - HEAD
+          - OPTIONS
+          - PATCH
+          - POST
+          - PUT
+          DefaultTTL: 0
+          MaxTTL: 0
+          MinTTL: 0
+          ForwardedValues:
+            QueryString: true
+            Headers:
+            - Access-Control-Request-Headers
+            - Access-Control-Request-Method
+            - Origin
+            - Authorization
+            # - Host APIG needs to use SNI
+            Cookies:
+              Forward: all
+          TargetOriginId: ApiOrigin
+          ViewerProtocolPolicy: https-only
+          Compress: true
+
+        DefaultRootObject: "index.html"
+        Logging:
+          IncludeCookies: "false"
+          Bucket: !GetAtt CloudFrontLogsBucket.DomainName
+          Prefix: !Sub "cloudfront/logs/${DomainName}"
+        Enabled: true
+        PriceClass: "PriceClass_100" # "PriceClass_All"
+        HttpVersion: "http2"
+        ViewerCertificate:
+#          CloudFrontDefaultCertificate: true
+          AcmCertificateArn: !Ref Cert
+          MinimumProtocolVersion: TLSv1
+          SslSupportMethod: sni-only          
+        Origins:
+          - Id: "WebsiteBucketOrigin"
+            DomainName: !Sub "${S3BucketForWebsiteContent}.s3-website-${AWS::Region}.amazonaws.com"
+            OriginPath: !Sub "${DistributionOriginPath}"
+            CustomOriginConfig:
+              HTTPPort: '80'
+              HTTPSPort: '443'     
+              OriginProtocolPolicy: 'http-only'       
+            OriginCustomHeaders:
+              - HeaderName: Referer
+                HeaderValue: !Sub "${SecretReferer}"
+          - Id: "WebsiteBucketLoginOrigin"
+            DomainName: !Sub "${S3BucketForWebsiteContent}.s3-website-${AWS::Region}.amazonaws.com"
+            OriginPath: !Sub "${LoginPageRelativePath}"
+            CustomOriginConfig:
+              HTTPPort: '80'
+              HTTPSPort: '443'     
+              OriginProtocolPolicy: 'http-only'       
+            OriginCustomHeaders:
+              - HeaderName: Referer
+                HeaderValue: !Sub "${SecretReferer}"
+          - Id: "ApiOrigin"
+            DomainName: !Sub "${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com"
+            OriginPath: !Sub "/Prod"
+            CustomOriginConfig:
+              HTTPPort: '80'
+              HTTPSPort: '443'     
+              OriginProtocolPolicy: 'https-only'
+              OriginSSLProtocols:
+              - "TLSv1.2"
+
+          # - Id: "WebsiteBucketOrigin"
+          #   DomainName: !Sub "${S3BucketForWebsiteContent}.s3-website-${AWS::Region}.amazonaws.com"
+          #   OriginPath: !Sub "${DistributionOriginPath}"
+          #   OriginCustomHeaders:
+          #     - HeaderName: Referer
+          #       HeaderValue: !Sub "${SecretReferer}"
+          #   S3OriginConfig: {}
+            #   OriginAccessIdentity:
+            #     Fn::Join:
+            #       - ""
+            #       - - "origin-access-identity/cloudfront/"
+            #         - Ref: "CloudFrontOriginAccessIdentity"
+    DependsOn:
+      - S3BucketForWebsiteContent
+      - CloudFrontLogsBucket
+
+  # CloudFrontOriginAccessIdentity:
+  #   Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+  #   Properties:
+  #     CloudFrontOriginAccessIdentityConfig:
+  #       Comment: !Ref S3BucketForWebsiteContent
+
+  StagingBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3BucketForStagingWebsiteContent
+      PolicyDocument:
+        Statement:
+          - Action:
+              - s3:GetObject
+            Effect: Allow
+            Principal: "*"
+            Resource: !Sub "${S3BucketForStagingWebsiteContent.Arn}/*"
+            Condition:
+              StringLike:
+                aws:Referer:
+                  - !Sub "${SecretReferer}"
+                  - !Sub "${S3BucketForStagingWebsiteContent.WebsiteURL}/*"
+
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3BucketForWebsiteContent
+      PolicyDocument:
+        Statement:
+          - Action:
+              - s3:GetObject
+            Effect: Allow
+            Principal: "*"
+            Resource: !Sub "${S3BucketForWebsiteContent.Arn}/*"
+            Condition:
+              StringLike:
+                aws:Referer:
+                  - !Sub "${SecretReferer}"
+          # - Action:
+          #     - s3:GetObject
+          #   Effect: Deny
+          #   Principal: "*"
+          #   Resource: !Sub "${S3BucketForWebsiteContent.Arn}/*"
+          #   Condition:
+          #     StringNotLike:
+          #       aws:Referer:
+          #         - !Sub "${SecretReferer}"                  
+
+          # - Action:
+          #     - s3:GetObject
+          #   Effect: Allow
+          #   Resource:
+          #     Fn::Join:
+          #       - ""
+          #       - - "arn:aws:s3:::"
+          #         - Ref: "S3BucketForWebsiteContent"
+          #         - "/*"
+          #   Principal:
+          #     CanonicalUser: !GetAtt CloudFrontOriginAccessIdentity.S3CanonicalUserId
+
+  LambdaEdgeLoginFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: 
+      Role: !GetAtt LambdaEdgeLoginFunctionRole.Arn
+      Runtime: nodejs12.x
+      Handler: index.handler
+      Timeout: 5
+      AutoPublishAlias: live
+      InlineCode:
+        !Sub |
+          // login handler
+          "use strict";
+
+          const AWS = require("aws-sdk");
+          const secretsmanager = new AWS.SecretsManager();
+          const fs = require("fs");
+          const log = o => console.log(JSON.stringify(o));
+
+          // cache expensive operation of loading users from secrets manager
+          let cloudFrontKeyPair = null;
+
+          const loadCloudFrontKeyPairFromSecretsManager = async () => {
+            const cloudFrontKeyPairPrivateKeySecretResp = await secretsmanager
+              .getSecretValue({
+                SecretId: "${CloudFrontKeyPairPrivateKeySecret}"
+              })
+              .promise();
+            log({ cloudFrontKeyPairPrivateKeySecretResp })
+            const cloudFrontKeyPairPrivateKeySecret = cloudFrontKeyPairPrivateKeySecretResp.SecretString
+
+            const cloudFrontKeyPairPublicKeySecretResp = await secretsmanager
+              .getSecretValue({
+                SecretId: "${CloudFrontKeyPairPublicKeySecret}"
+              })
+              .promise();
+            log({ cloudFrontKeyPairPublicKeySecretResp })
+            const cloudFrontKeyPairPublicKeySecret = cloudFrontKeyPairPublicKeySecretResp.SecretString
+
+            const cloudFrontKeyPairIdSecretResp = await secretsmanager
+              .getSecretValue({
+                SecretId: "${CloudFrontKeyPairIdSecret}"
+              })
+              .promise();
+            log({ cloudFrontKeyPairIdSecretResp })
+            const cloudFrontKeyPairIdSecret = cloudFrontKeyPairIdSecretResp.SecretString
+
+            cloudFrontKeyPair = {
+              cloudFrontKeyPairIdSecret,
+              cloudFrontKeyPairPrivateKeySecret,
+              cloudFrontKeyPairPublicKeySecret
+            }
+          };
+
+          const getSignedCookies = async () => {
+            const cloudFront = new AWS.CloudFront.Signer(
+              cloudFrontKeyPair.cloudFrontKeyPairIdSecret,
+              cloudFrontKeyPair.cloudFrontKeyPairPrivateKeySecret
+            );
+
+            const policy = JSON.stringify({
+              Statement: [
+                {
+                  Resource: 'http*://${DomainName}/*',
+                  Condition: {
+                    DateLessThan: {
+                      'AWS:EpochTime':
+                        Math.floor(new Date().getTime() / 1000) + 60 * 60 * 1, // Current Time in UTC + time in seconds, (60 * 60 * 1 = 1 hour)
+                    },
+                  },
+                },
+              ],
+            });
+
+            return new Promise((resolve, reject) => {
+              cloudFront.getSignedCookie({
+                policy,
+              }, (err, resp) => {
+                if (err) {
+                  console.error(`cloudFront.getSignedCookie failed`)
+                  console.error(err)
+                  return reject(err)
+                }
+                log({ resp })
+                return resolve(resp)
+              });
+            })
+
+          }
+
+          exports.handler = async (event, context, callback) => {
+            log({ event });
+
+            if (cloudFrontKeyPair === null) {
+              await loadCloudFrontKeyPairFromSecretsManager();
+            }
+
+            const request = event.Records[0].cf.request;
+            const headers = request.headers;
+
+            if (request.querystring && request.querystring.length > 0) {
+              const signedCookies = await getSignedCookies()
+              log({ signedCookies })
+
+              const respHeaders = {};
+              respHeaders['set-cookie'] = [];
+              const cloudFrontSignedCookieHeaderKeys = ['CloudFront-Key-Pair-Id', 'CloudFront-Policy', 'CloudFront-Signature'];
+              cloudFrontSignedCookieHeaderKeys.forEach((key) => {
+                const value = signedCookies[key]
+                respHeaders['set-cookie'].push({
+                  key: "Set-Cookie",
+                  value: key + `=` + value + `; domain=${DomainName}; path=/; httpOnly=true`
+                })
+              })
+
+              const response = {
+                status: "302",
+                statusDescription: "Found",
+                headers: respHeaders
+              }
+
+              response.headers.location =[{
+                key: "Location",
+                value: "/",
+              }]
+
+              log({ response })
+              return response;
+            } else {
+              const body = "Unauthorized";
+              const response = {
+                status: "401",
+                statusDescription: "Unauthorized",
+                body: body,
+                headers: {}
+              };
+              log({ response })
+              return response;
+            }
+          };
+
+  LambdaEdgeLoginFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+        Path: "/"
+        ManagedPolicyArns:
+            - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+        Policies:
+          - PolicyName: SecretsManagerGetSecretValue
+            PolicyDocument:
+              Version: 2012-10-17
+              Statement:
+                - Effect: "Allow"
+                  Action:
+                    - "secretsmanager:GetSecretValue"
+                  Resource: !Ref CloudFrontKeyPairIdSecret
+                - Effect: "Allow"
+                  Action:
+                    - "secretsmanager:GetSecretValue"
+                  Resource: !Ref CloudFrontKeyPairPrivateKeySecret
+                - Effect: "Allow"
+                  Action:
+                    - "secretsmanager:GetSecretValue"
+                  Resource: !Ref CloudFrontKeyPairPublicKeySecret                  
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            -
+              Sid: "AllowLambdaServiceToAssumeRole"
+              Effect: "Allow"
+              Action: 
+                - "sts:AssumeRole"
+              Principal:
+                Service: 
+                  - "lambda.amazonaws.com"
+                  - "edgelambda.amazonaws.com"
+
+  LambdaEdgeAuthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: 
+      Role: !GetAtt LambdaEdgeAuthFunctionRole.Arn
+      Runtime: nodejs12.x
+      Handler: index.handler
+      Timeout: 5
+      AutoPublishAlias: live
+      InlineCode:
+        !Sub |
+          // basic auth
+          "use strict";
+
+          const AWS = require("aws-sdk");
+          const secretsmanager = new AWS.SecretsManager();
+          const fs = require("fs");
+
+          const log = o => console.log(JSON.stringify(o));
+
+          // cache expensive operation of loading users from secrets manager
+          let userAuthStrings = null;
+
+          const loadUserAuthStrings = async () => {
+            const resp = await secretsmanager
+              .getSecretValue({
+                SecretId: "${UsersSecret}"
+              })
+              .promise();
+            const users = JSON.parse(resp.SecretString).users;
+            userAuthStrings = users.map(
+              user =>
+                "Basic " +
+                new Buffer(user.username + ":" + user.password).toString("base64")
+            );
+          };
+
+          exports.handler = async (event, context, callback) => {
+            log({ event });
+
+            if (userAuthStrings === null) {
+              await loadUserAuthStrings();
+            }
+
+            // Get request and request headers
+            const request = event.Records[0].cf.request;
+            const headers = request.headers;
+
+            // Require Basic authentication
+            if (
+              typeof headers.authorization == "undefined" ||
+              !userAuthStrings.includes(headers.authorization[0].value)
+              //headers.authorization[0].value != authString
+            ) {
+              const body = "Unauthorized";
+              const response = {
+                status: "401",
+                statusDescription: "Unauthorized",
+                body: body,
+                headers: {
+                  "www-authenticate": [{ key: "WWW-Authenticate", value: "Basic" }]
+                }
+              };
+              return response;
+            } else {
+              // Continue request processing if authentication passed
+              return request;
+            }
+          };
+
+  LambdaEdgeAuthFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+        Path: "/"
+        ManagedPolicyArns:
+            - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+        Policies:
+          - PolicyName: SecretsManagerGetSecretValue
+            PolicyDocument:
+              Version: 2012-10-17
+              Statement:        
+                - Effect: "Allow"
+                  Action:
+                    - "secretsmanager:GetSecretValue"
+                  Resource: !Ref UsersSecret
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            -
+              Sid: "AllowLambdaServiceToAssumeRole"
+              Effect: "Allow"
+              Action: 
+                - "sts:AssumeRole"
+              Principal:
+                Service: 
+                  - "lambda.amazonaws.com"
+                  - "edgelambda.amazonaws.com"
+
+  CloudFrontWebACL:
+    Type: AWS::WAFv2::WebACL
+    Properties:
+      Scope: CLOUDFRONT
+      Description: CloudFront WAF WebACL
+      DefaultAction:
+        Allow: {}
+      VisibilityConfig:
+        SampledRequestsEnabled: true
+        CloudWatchMetricsEnabled: true
+        MetricName: !Sub "${AWS::StackName}-WebACLMetric"
+      Rules:
+        - Name: RuleWithAWSManagedRules
+          Priority: 0
+          OverrideAction:
+            Count: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: !Sub "${AWS::StackName}-RuleWithAWSManagedRulesMetric"
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesCommonRuleSet
+              ExcludedRules: []
+
+  CloudFrontKeyPairIdSecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Description: |
+        The ID of the CloudFront key pair being used to create signed cookies.
+        
+        NOTE: demo purposes only to store in cfn.  Would be defined via 
+        AWS Console and referenced for production use.
+
+      SecretString: "APKAJK35MM4IQ2LXQOFA"
+
+  CloudFrontKeyPairPrivateKeySecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Description: |
+        CloudFront Key Pair private key used to create signed cookies.
+        
+        NOTE: demo purposes only to store in cfn.  Would be defined via 
+        AWS Console and referenced for production use.
+
+      SecretString: |
+        -----BEGIN RSA PRIVATE KEY-----
+        MIIEowIBAAKCAQEAuBPb7Lpb8vGpSiDyk5lqAT22AQUFNr7NvOktSBPH+gHnRS1n
+        xBnffGit1vxQT3I4tF9f3pF62LOPyLRD1k0y5FnQwkZxQiG+Cja60adGByK6K4Dt
+        E4Q1CVakICg97ahr9KyifgTi9bH2yGxZyOMJZ1NYjLTc4LhiPA1ZUntsjgzXKPF9
+        hfoYggzOFWds0tTZiin7YE7YFM3B+rhnnSMAcG5ryRbt9AOmY2pkGbwe3KUqcm6t
+        QUagdkdXV/hQQX6svPVB+/TvECMXYmKJwtUWq79PiDXOokFnDpJ/3wDZTH4LamPY
+        XukgtDQr4KlfWBYbbixyMgVqfxR+biHHwEUUiQIDAQABAoIBAEIjSIJ+1uisMXIj
+        8mRb272Eaa9mGWB5H7y/XvilutU1991gGgdYcHbnuYYj88sHtB4CopR6WtQfeArZ
+        0gHejOmE57/VxX3IV9qdnXQUkNGhhZh54zR+7Ptk+OVg8BdCyz8HA/8ZTF6QyaVr
+        YLsP7+IDDS7JEQ9g0FLZTP2YwQEsOYmtWuGDd5BSaTj3tpo0DI4U5FzqTmnQ6/Tv
+        oqY43goVuob5RCsX6I5K2x+JoRyu90YZA8KvWrhFMDYLqdwxdQ9g7TAXtcNLywdc
+        Jr7oAbWb8MX2MemfLoc2LzrC7VtVpWG+bNMHFXGF2vLjQlKvyo5Y27KcGpCfNNig
+        dUZa2q0CgYEA6IVmyhSXrjBPyK7HBdyfV8u+z6n5L+LsqJM9rTSzXa27ib2tSFK2
+        LPMj22HBM/sILHUwrKCoVsIHfyzpBOHgcYyvgGiBK+hOCozeRFk6gtmSE7p/ds4+
+        RAPJNzv76d5YwPc/uZS1pahi2/bwVNWO1ppQ+xRfX+Mt4BcHWu0G/hsCgYEAyqo1
+        GcJw+5dwLwOpHYBcmATUtca42/nrCeF3XMUiil1U+diqPwGuUygSKOPDjQVhgHCt
+        Nl7PQuQ6XBiJEkEWH5vAgRsGi4j3ZA6zZknWweZyF4Zyju3HDqn5sP8aMwoioVr0
+        CeZqI6mN7FRUhHXULIF0cWRiFyAghyQ4NEhXkisCgYEAkM1K1vv9/ccuWG6nmLnt
+        LXK/0Hksqqqp8M1JMo1ISkWALeZGfGyt8M41/VAiTmm9jFoqxsaCLw1EN+nS72xv
+        JqeTP+dU0fAocZ+KZ4wdyREPTGPvLyB/XEHzVAdx+RGzue//6mV2vcRgVFWzE1Gv
+        U2vklIf6YS+MCSquNOy5VxMCgYBr6urPxryHHIL+ZgKd1QZ5ZMkn6qPxb0l7P3Zi
+        Dg9wgnaHfJpbZre/TC0vXOl6pIzg6h8yPpY7VnDFLcN/1uzC9Bs0JIH9t3eU7kcV
+        hug25FGIuW0zMua2pkhxucXnu9Po/BfLVcjbKKSMXfOLfXr4IA8zenLJQbBQhjbv
+        kD4hdQKBgFFqv4a84XVwHzwOrJdDCwTJQqhSUHd9NUEhu6wD1lFSwgNg7JIm1Tsp
+        yfdncYK/oOd6+v1ujKfT53jAuUIpWx+BJYp8PKBtHT7OYUsWZnKAHwDM9NDkKMR2
+        vmy5p7BZyC+KwJc/143U41hqzaSPk+SmiWPwtneGCx3n4Ada7Sls
+        -----END RSA PRIVATE KEY-----
+
+  CloudFrontKeyPairPublicKeySecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Description: |
+        CloudFront Key Pair public key used to create signed cookies.
+
+        NOTE: demo purposes only to store in cfn.  Would be defined via 
+        AWS Console and referenced for production use.
+      SecretString: |
+        -----BEGIN PUBLIC KEY-----
+        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuBPb7Lpb8vGpSiDyk5lq
+        AT22AQUFNr7NvOktSBPH+gHnRS1nxBnffGit1vxQT3I4tF9f3pF62LOPyLRD1k0y
+        5FnQwkZxQiG+Cja60adGByK6K4DtE4Q1CVakICg97ahr9KyifgTi9bH2yGxZyOMJ
+        Z1NYjLTc4LhiPA1ZUntsjgzXKPF9hfoYggzOFWds0tTZiin7YE7YFM3B+rhnnSMA
+        cG5ryRbt9AOmY2pkGbwe3KUqcm6tQUagdkdXV/hQQX6svPVB+/TvECMXYmKJwtUW
+        q79PiDXOokFnDpJ/3wDZTH4LamPYXukgtDQr4KlfWBYbbixyMgVqfxR+biHHwEUU
+        iQIDAQAB
+        -----END PUBLIC KEY-----
+
+  UsersSecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Description: users credentials store
+      SecretString: |
+        {
+            "users": [
+                {
+                    "username": "user",
+                    "password": "pass"
+                },
+                {
+                    "username": "user01",
+                    "password": "password01"
+                },
+                {
+                    "username": "user02",
+                    "password": "password02"
+                },
+                {
+                    "username": "epublishuser",
+                    "password": "epublishpassword"
+                }
+            ]
+        }      
+
+  DNSRecordSet:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneName: !Sub "${DomainName}."
+      RecordSets:
+      - Name: !Ref DomainName
+        Type: A
+        AliasTarget:
+          HostedZoneId: "Z2FDTNDATAQYW2" # this is a special value for a CloudFront ALIAS.  not hard coded
+          DNSName: !GetAtt WebsiteDistribution.DomainName
+      - Name: !Sub "www.${DomainName}"
+        Type: CNAME
+        TTL: '60'
+        ResourceRecords:
+        - !GetAtt WebsiteDistribution.DomainName          
+      - Name: !Sub "${StagingDomainName}"
+        Type: CNAME
+        TTL: '60'
+        ResourceRecords:
+        - !GetAtt StagingWebsiteDistribution.DomainName          
+      - Name: !Sub "staging-bucket.${DomainName}"
+        Type: CNAME
+        TTL: '60'
+        ResourceRecords:
+        - !Sub "${S3BucketForStagingWebsiteContent}.s3-website-${AWS::Region}.amazonaws.com"
+
+  HttpApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      InlineCode: |
+         exports.handler = async (event) => {
+          console.log("Hello from MyAuthFunction")
+           return {
+           statusCode: 200,
+           body: JSON.stringify(event),
+           headers: {}
+           }
+         }
+      Handler: index.handler
+      Runtime: nodejs12.x
+      Events:
+        SimpleCase:
+          Type: Api
+          Properties:
+            Path: "{proxy+}"
+            Method: ANY
+
+  AutomationUser:
+    Type: AWS::IAM::User
+    Properties:
+      LoginProfile:
+        Password: !Ref 'AutomationUserPassword'
+
+  AutomationUserAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref 'AutomationUser'
+
+  AutomationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            AWS: !GetAtt AutomationUser.Arn
+          Action:
+          - sts:AssumeRole
+
+  AutomationPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: AutomationPolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Action:
+          - cloudformation:DescribeStacks
+          Effect: Allow
+          Resource: !Sub "${AWS::StackId}"
+        - Action:
+          - s3:ListBucket
+          Effect: Allow
+          Resource: !Sub "${S3BucketForStagingWebsiteContent.Arn}"
+        - Action:
+          - s3:ListObjectsV2
+          - s3:PutObject
+          - s3:DeleteObject
+          Effect: Allow
+          Resource: !Sub "${S3BucketForStagingWebsiteContent.Arn}/*"
+        - Action:
+          - cloudfront:GetDistribution
+          - cloudfront:CreateDistribution
+          - cloudfront:UpdateDistribution          
+          - cloudfront:CreateInvalidation
+          Effect: Allow
+          Resource: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${StagingWebsiteDistribution}"    
+        - Action:
+          - s3:ListBucket
+          Effect: Allow
+          Resource: !Sub "${S3BucketForWebsiteContent.Arn}"
+        - Action:
+          - s3:ListObjectsV2
+          - s3:PutObject
+          - s3:DeleteObject
+          Effect: Allow
+          Resource: !Sub "${S3BucketForWebsiteContent.Arn}/*"
+        - Action:
+          - cloudfront:GetDistribution
+          - cloudfront:CreateDistribution
+          - cloudfront:UpdateDistribution          
+          - cloudfront:CreateInvalidation
+          Effect: Allow
+          Resource: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${WebsiteDistribution}"          
+      Roles: [!Ref AutomationRole]
+      Users: [!Ref AutomationUser]
+
+Outputs:
+  WebsiteBucketName:
+    Description: The logical ID of the website bucket
+    Value: !Ref S3BucketForWebsiteContent
+  WebsiteBucketArn:
+    Description: The Arn of the website bucket
+    Value: !GetAtt S3BucketForWebsiteContent.Arn
+  WebsiteBucketUrl:
+    Description: The website URL of the website bucket
+    Value: !GetAtt S3BucketForWebsiteContent.WebsiteURL
+  StagingWebsiteBucketName:
+    Description: The logical ID of the staging website bucket
+    Value: !Ref S3BucketForStagingWebsiteContent
+  StagingWebsiteBucketArn:
+    Description: The Arn of the staging website bucket
+    Value: !GetAtt S3BucketForStagingWebsiteContent.Arn
+  StagingWebsiteBucketUrl:
+    Description: The website URL of the staging website bucket
+    Value: !GetAtt S3BucketForStagingWebsiteContent.WebsiteURL
+  StagingCloudFrontDistributionId:
+    Description: The CloudFront staging distribution id
+    Value: !Ref StagingWebsiteDistribution
+  StagingCloudFrontDistributionDomainName:
+    Description: The CloudFront staging distribution domain name
+    Value: !GetAtt StagingWebsiteDistribution.DomainName
+  StagingCloudFrontDistributionURL:
+    Description: The CloudFront staging distribution URL
+    Value: !Sub "https://${StagingWebsiteDistribution.DomainName}"
+  CloudFrontDistributionId:
+    Description: The CloudFront distribution id
+    Value: !Ref WebsiteDistribution
+  CloudFrontDistributionDomainName:
+    Description: The CloudFront distribution domain name
+    Value: !GetAtt WebsiteDistribution.DomainName
+  CloudFrontDistributionURL:
+    Description: The CloudFront distribution URL
+    Value: !Sub "https://${WebsiteDistribution.DomainName}"
+  CloudFrontKeyPairPrivateKeySecretArn:
+    Description: The Arn to the CloudFront Key Pair Private Key Secret
+    Value: !Ref CloudFrontKeyPairPrivateKeySecret
+  CloudFrontKeyPairPublicKeySecretArn:
+    Description: The Arn to the CloudFront Key Pair Public Key Secret
+    Value: !Ref CloudFrontKeyPairPublicKeySecret
+  CloudFrontLogsBucketName:
+    Description: The logical ID of the CloudFront logs bucket
+    Value: !Ref CloudFrontLogsBucket
+  CloudFrontLogsBucketArn:
+    Description: The Arn of the CloudFront logs bucket
+    Value: !GetAtt CloudFrontLogsBucket.Arn
+  StagingWebsiteURL:
+    Description: The staging website URL
+    Value: !Sub "https://${StagingDomainName}"
+  ApexWebsiteURL:
+    Description: The apex website URL
+    Value: !Sub "https://${DomainName}"
+  WwwWebsiteURL:
+    Description: The www website URL
+    Value: !Sub "https://www.${DomainName}"
+  ApiURL:
+    Description: "API endpoint URL for Prod environment"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+  RoleId:
+    Description: The logical ID of the IAM role
+    Value: !Ref AutomationRole
+  RoleArn:
+    Description: The ARN of the IAM role
+    Value: !GetAtt AutomationRole.Arn
+  PolicyId:
+    Description: The logical ID of the IAM policy
+    Value: !Ref AutomationPolicy
+  AccessKey:
+    Value: !Ref 'AutomationUserAccessKey'
+    Description: AWSAccessKeyId of new user
+  SecretKey:
+    Value: !GetAtt AutomationUserAccessKey.SecretAccessKey
+    Description: AWSSecretAccessKey of new user    
