@@ -45,7 +45,8 @@ This infrastructure provisioning and deployment pipeline performs an atomic depl
     # content only update to production
     ./run.sh publish-content prod
     ```
-
+  1. view changes @ <https://staging.mydomain.com> or <https://mydomain.com>
+  
 ## Website Content Publishing via Commit Steps
 
 1. ensure you have `develop` branch checked out *(this corresponds to staging environment)*
