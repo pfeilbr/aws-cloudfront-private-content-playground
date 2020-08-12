@@ -25,8 +25,6 @@ read -r -d '' TAGS <<- EOM
     Consumer=tagConsumer
 EOM
 
-
-
 CONTENT_DIRECTORY_PATH="./public"
 BUILD_SOURCEBRANCHNAME="${BUILD_SOURCEBRANCHNAME:-master}"
 #BUILD_SOURCEBRANCHNAME="develop"
@@ -43,6 +41,9 @@ display_usage() {
     echo -e "\trun delete-infrastructure"
     echo -e "\trun publish-content staging|prod [--blue-green-publish] [--apply-routing-rules] [--invalidate-cloudfront-cache]"
     echo -e "\trun tag-and-trigger-publish"
+    echo -e "\trun open-website staging|prod"
+    echo -e "\trun local-lambda-test"
+    echo -e "\n"
     
 }
 
@@ -380,13 +381,32 @@ tag-and-trigger-publish() {
     git push origin "${TAG_NAME}"
 }
 
+local-lambda-test() {
+    sam local invoke -e src/lambda/login/event.json "LambdaEdgeLoginFunction"
+    sam local invoke -e src/lambda/decode-verify-jwt/event.json "DecodeVerifyJwtFunction"
+    sam local invoke -e src/lambda/basic-auth/event.json "LambdaEdgeAuthFunction"    
+}
+
+open-website() {
+    environment="$2"
+
+    if [ "${environment}" = "staging" ]; then
+        open "https://${STAGING_DOMAIN_NAME}"
+    fi
+
+    if [ "${environment}" = "production" ]; then
+        open "https://${DOMAIN_NAME}"
+    fi
+
+}
+
 test-cmd() {
     echo "test"
 }
 
 case $CMD in
-    test-cmd)
-        test-cmd
+    local-lambda-test)
+        local-lambda-test
     ;;
     bootstrap)
         bootstrap
@@ -402,6 +422,9 @@ case $CMD in
     ;;
     tag-and-trigger-publish)
         tag-and-trigger-publish "$@"
+    ;;
+    open-website)
+        open-website "$@"
     ;;
     delete-infrastructure)
         read -r -p "Are you sure want to delete the stack? [y/N] " response

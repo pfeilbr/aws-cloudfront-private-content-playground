@@ -4,12 +4,12 @@
 
 Explore options for serving private content via [CloudFront](https://aws.amazon.com/cloudfront/)
 
-This infrastructure provisioning and deployment pipeline performs an atomic deploy of private static content from a github repo to a static site (Route 53 + ACM + WAF + Cognito + CloudFront + S3) when a tag (release) is applied to the repo.
+This infrastructure provisioning and deployment pipeline performs an atomic deploy of private static content from a github repo to a static site (Route 53 + ACM + WAF + Cognito Federated SSO to Auth0 SAML + CloudFront + S3) when a tag (release) is applied to the repo.
 
 **Demo Private Static Site**
 
 * <https://staging.allthecloudbits.com/> - pre-production protected by basic auth.  login with Username: user01, Password: password01
-* <https://allthecloudbits.com/> - production
+* <https://allthecloudbits.com/> - production protected by Cognito Federated SSO to Auth0 SAML.  login with Username: user01@example.com, Password: password01
 
 ---
 
@@ -54,6 +54,10 @@ This infrastructure provisioning and deployment pipeline performs an atomic depl
     ./run.sh publish-content prod
     ```
   1. view changes @ <https://staging.mydomain.com> or <https://mydomain.com>
+      ```sh
+      ./run.sh open-website staging
+      ./run.sh open-website production
+      ```
   
 ## Website Content Publishing via Commit Steps
 
