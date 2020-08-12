@@ -1,0 +1,100 @@
+{
+    "Records": [
+        {
+            "cf": {
+                "config": {
+                    "distributionDomainName": "d3lhpdjm6ngl2x.cloudfront.net",
+                    "distributionId": "EQB23CZOQJC3P",
+                    "eventType": "viewer-request",
+                    "requestId": "E7udzCXuVzZPuwKpHFQdmqiQ6cux7-vzaaucua0lQONjcnHKI1ZBzg=="
+                },
+                "request": {
+                    "body": {
+                        "action": "read-only",
+                        "data": "",
+                        "encoding": "base64",
+                        "inputTruncated": false
+                    },
+                    "clientIp": "100.11.117.63",
+                    "headers": {
+                        "host": [
+                            {
+                                "key": "Host",
+                                "value": "allthecloudbits.com"
+                            }
+                        ],
+                        "user-agent": [
+                            {
+                                "key": "User-Agent",
+                                "value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36"
+                            }
+                        ],
+                        "pragma": [
+                            {
+                                "key": "pragma",
+                                "value": "no-cache"
+                            }
+                        ],
+                        "cache-control": [
+                            {
+                                "key": "cache-control",
+                                "value": "no-cache"
+                            }
+                        ],
+                        "upgrade-insecure-requests": [
+                            {
+                                "key": "upgrade-insecure-requests",
+                                "value": "1"
+                            }
+                        ],
+                        "accept": [
+                            {
+                                "key": "accept",
+                                "value": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
+                            }
+                        ],
+                        "sec-fetch-site": [
+                            {
+                                "key": "sec-fetch-site",
+                                "value": "same-origin"
+                            }
+                        ],
+                        "sec-fetch-mode": [
+                            {
+                                "key": "sec-fetch-mode",
+                                "value": "navigate"
+                            }
+                        ],
+                        "sec-fetch-dest": [
+                            {
+                                "key": "sec-fetch-dest",
+                                "value": "document"
+                            }
+                        ],
+                        "referer": [
+                            {
+                                "key": "referer",
+                                "value": "https://allthecloudbits.com/login/redirect.html"
+                            }
+                        ],
+                        "accept-encoding": [
+                            {
+                                "key": "accept-encoding",
+                                "value": "gzip, deflate, br"
+                            }
+                        ],
+                        "accept-language": [
+                            {
+                                "key": "accept-language",
+                                "value": "en-US,en;q=0.9"
+                            }
+                        ]
+                    },
+                    "method": "GET",
+                    "querystring": "access_token=eyJraWQiOiJqdzNzaUhDU2NxeWVhMnliKytkeHNNZXBnVk5JSE5Bc1pQVldKUVJPUW1BPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiIxM2VkODk4Ni1hZjc2LTQzYWYtOGU5Mi01ZDdjMzM1ODQ1MzEiLCJjb2duaXRvOmdyb3VwcyI6WyJ1cy1lYXN0LTFfUVVTTlhXc3hMX2F1dGgwIl0sInRva2VuX3VzZSI6ImFjY2VzcyIsInNjb3BlIjoib3BlbmlkIGVtYWlsIiwiYXV0aF90aW1lIjoxNTk3MjUyNTk5LCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9RVVNOWFdzeEwiLCJleHAiOjE1OTcyNTYxOTksImlhdCI6MTU5NzI1MjU5OSwidmVyc2lvbiI6MiwianRpIjoiNjdiMWYxZGItOTQ4Ni00MTRjLWE2MmUtYzNiMjRmMzA4NDE0IiwiY2xpZW50X2lkIjoiM2FsM3IxZmF0cjIxM25kdnAydW9xY2ZnaTkiLCJ1c2VybmFtZSI6ImF1dGgwX2F1dGgwfDVmMzI5YjRmNzNlZGMxMDAzZDVmNWQ3MyJ9.eimP4DQzhvNhHbwvoOAOIeYZTfa47bgxeZtePUYRF5zounHh0rN5jysU7WL6AIKt2gtlBCA_slr1LD65T8LmSTUcklmqQmMNVfSyq8QP53cyaGFDVYGoWtamBQRRFnboWBzyUyqTc9seps2KBbS0D3jfmsaDWf574C6mYfWlPDol3jgUH7JR0LXMvodWxUpTxH3DfKlC9mLZnk9YuwghhHF7HfsC2MAZVQU73ChKy8-fiUcC8WC4UC64bVTQqh1Nk_rGbp8h5VJFSWioXU_TJgOsfuZx9hLZvq3JSpcqeZhRxIdBFEwqEa4NmseSh6zEAlIaprqYRZR_MGLGVoxlhQ&id_token=eyJraWQiOiJweElSWFRBMTBlakI3TUpBbnVLS0l1VHo1eTNCcFU4eTUxNUd3Y1lwSHg0PSIsImFsZyI6IlJTMjU2In0.eyJhdF9oYXNoIjoiM1dVNVhpdnNLV1ExOFh2Q050M2dpZyIsInN1YiI6IjEzZWQ4OTg2LWFmNzYtNDNhZi04ZTkyLTVkN2MzMzU4NDUzMSIsImNvZ25pdG86Z3JvdXBzIjpbInVzLWVhc3QtMV9RVVNOWFdzeExfYXV0aDAiXSwiZW1haWxfdmVyaWZpZWQiOmZhbHNlLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9RVVNOWFdzeEwiLCJjb2duaXRvOnVzZXJuYW1lIjoiYXV0aDBfYXV0aDB8NWYzMjliNGY3M2VkYzEwMDNkNWY1ZDczIiwibm9uY2UiOiJ4dHBNUFNYemFwcW5zcWFweWJNUk9WUk9ISW1qNndXV3RHRk1wWlQxbk1lYkFJNWFMM1NTc25QYkFJZTNfd0ZVa2ltZVZOYlItSmhlWW5fYnFGU0pJRFlIYjBGUDU1YjVyMmM3Q3kxbTFqbnBJRlhna1h4VzRhRlEyeWlVOU9Ea2Z2WUZtekswM202dUtSalJHMkRaM05BT1huWmlfcU4tYlExSGgzdzFMbWsiLCJhdWQiOiIzYWwzcjFmYXRyMjEzbmR2cDJ1b3FjZmdpOSIsImlkZW50aXRpZXMiOlt7InVzZXJJZCI6ImF1dGgwfDVmMzI5YjRmNzNlZGMxMDAzZDVmNWQ3MyIsInByb3ZpZGVyTmFtZSI6ImF1dGgwIiwicHJvdmlkZXJUeXBlIjoiU0FNTCIsImlzc3VlciI6InVybjpzdmMuYXV0aDAuY29tIiwicHJpbWFyeSI6InRydWUiLCJkYXRlQ3JlYXRlZCI6IjE1OTcxNTg3NTU1ODMifV0sInRva2VuX3VzZSI6ImlkIiwiYXV0aF90aW1lIjoxNTk3MjUyNTk5LCJleHAiOjE1OTcyNTYxOTksImlhdCI6MTU5NzI1MjU5OSwiZW1haWwiOiJ1c2VyMDFAZXhhbXBsZS5jb20ifQ.fEiJh12WNHoaHC_k6mt0kaF73zii6Qw5nUIaHtlHoGyi0dFeGOifbhRJDaZvQVIGp97cEUSLerJXwQvJh_Jy45Xjca9uoIPDhwWA0vL_XXsvx75jRVfv2X-xt437v8ipyqvplYr5Zbx2ZXtZQjyn9knDBlCrG4RxZH_fcLwFEgCBHc2Le6t3lzkUZ2Uwz5fA0aA1MfB8PwjaSyxcfZKaG4QYVyiYGWfzGcU2ufaQENAGcB_3_UxRCLPKVSqxE0KhoU15abj5Esnzoo8xoGAGM3ULMbepa9S3GvaFBn_XeflpPV1RL4EqZ2XIR3indZPBWqyZbX3gKkplmE5l9bWtAg&token_type=Bearer&expires_in=3600",
+                    "uri": "/login/auth/"
+                }
+            }
+        }
+    ]
+}

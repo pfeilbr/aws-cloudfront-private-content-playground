@@ -1,3 +1,5 @@
+node_modules
 tmp
+packaged.yaml
 cloudfront-key-pair/*
 distribution_config.json

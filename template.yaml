@@ -7,6 +7,11 @@ Description: >
 
 Parameters:
 
+  BareDomainName:
+    Type: String
+    Description: The domain name.
+    Default: allthecloudbits
+
   DomainName:
     Type: String
     Description: The domain name.
@@ -125,8 +130,8 @@ Resources:
         DefaultCacheBehavior:
           TargetOriginId: "WebsiteBucketOrigin"
           ViewerProtocolPolicy: "redirect-to-https"
-          DefaultTTL: 600 # ten minutes
-          MaxTTL: 600 # ten minutes
+          DefaultTTL: 0 # 600 # ten minutes
+          MaxTTL: 0 # 600 # ten minutes
           Compress: true
           ForwardedValues:
             QueryString: false
@@ -220,12 +225,17 @@ Resources:
         WebACLId: !Sub "${CloudFrontWebACL.Arn}"
         Aliases:
           - !Ref DomainName   
-          - !Sub "www.${DomainName}"   
+          - !Sub "www.${DomainName}"
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: "/login/index.html"
+            ErrorCachingMinTTL: 0
         DefaultCacheBehavior:
           TargetOriginId: "WebsiteBucketOrigin"
           ViewerProtocolPolicy: "redirect-to-https"
-          DefaultTTL: 600 # ten minutes
-          MaxTTL: 600 # ten minutes
+          DefaultTTL: 0 # 600 # ten minutes
+          MaxTTL: 0 # 600 # ten minutes
           Compress: true
           ForwardedValues:
             QueryString: false
@@ -263,13 +273,14 @@ Resources:
             # - Host APIG needs to use SNI
             Cookies:
               Forward: all
-          TargetOriginId: WebsiteBucketLoginOrigin
+          TargetOriginId: WebsiteBucketOrigin
           ViewerProtocolPolicy: https-only
           Compress: true
           LambdaFunctionAssociations:
             -
               EventType: viewer-request
               LambdaFunctionARN: !Ref LambdaEdgeLoginFunction.Version
+              IncludeBody: true
 
         - PathPattern: /api/*
           AllowedMethods:
@@ -323,7 +334,7 @@ Resources:
                 HeaderValue: !Sub "${SecretReferer}"
           - Id: "WebsiteBucketLoginOrigin"
             DomainName: !Sub "${S3BucketForWebsiteContent}.s3-website-${AWS::Region}.amazonaws.com"
-            OriginPath: !Sub "${LoginPageRelativePath}"
+            OriginPath: !Sub "${DistributionOriginPath}${LoginPageRelativePath}"
             CustomOriginConfig:
               HTTPPort: '80'
               HTTPSPort: '443'     
@@ -420,179 +431,78 @@ Resources:
   LambdaEdgeLoginFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: 
-      Role: !GetAtt LambdaEdgeLoginFunctionRole.Arn
       Runtime: nodejs12.x
       Handler: index.handler
+      CodeUri: ./src/lambda/login
       Timeout: 5
       AutoPublishAlias: live
-      InlineCode:
-        !Sub |
-          // login handler
-          "use strict";
-
-          const AWS = require("aws-sdk");
-          const secretsmanager = new AWS.SecretsManager();
-          const fs = require("fs");
-          const log = o => console.log(JSON.stringify(o));
-
-          // cache expensive operation of loading users from secrets manager
-          let cloudFrontKeyPair = null;
-
-          const loadCloudFrontKeyPairFromSecretsManager = async () => {
-            const cloudFrontKeyPairPrivateKeySecretResp = await secretsmanager
-              .getSecretValue({
-                SecretId: "${CloudFrontKeyPairPrivateKeySecret}"
-              })
-              .promise();
-            log({ cloudFrontKeyPairPrivateKeySecretResp })
-            const cloudFrontKeyPairPrivateKeySecret = cloudFrontKeyPairPrivateKeySecretResp.SecretString
-
-            const cloudFrontKeyPairPublicKeySecretResp = await secretsmanager
-              .getSecretValue({
-                SecretId: "${CloudFrontKeyPairPublicKeySecret}"
-              })
-              .promise();
-            log({ cloudFrontKeyPairPublicKeySecretResp })
-            const cloudFrontKeyPairPublicKeySecret = cloudFrontKeyPairPublicKeySecretResp.SecretString
-
-            const cloudFrontKeyPairIdSecretResp = await secretsmanager
-              .getSecretValue({
-                SecretId: "${CloudFrontKeyPairIdSecret}"
-              })
-              .promise();
-            log({ cloudFrontKeyPairIdSecretResp })
-            const cloudFrontKeyPairIdSecret = cloudFrontKeyPairIdSecretResp.SecretString
-
-            cloudFrontKeyPair = {
-              cloudFrontKeyPairIdSecret,
-              cloudFrontKeyPairPrivateKeySecret,
-              cloudFrontKeyPairPublicKeySecret
-            }
-          };
-
-          const getSignedCookies = async () => {
-            const cloudFront = new AWS.CloudFront.Signer(
-              cloudFrontKeyPair.cloudFrontKeyPairIdSecret,
-              cloudFrontKeyPair.cloudFrontKeyPairPrivateKeySecret
-            );
-
-            const policy = JSON.stringify({
-              Statement: [
-                {
-                  Resource: 'http*://${DomainName}/*',
-                  Condition: {
-                    DateLessThan: {
-                      'AWS:EpochTime':
-                        Math.floor(new Date().getTime() / 1000) + 60 * 60 * 1, // Current Time in UTC + time in seconds, (60 * 60 * 1 = 1 hour)
-                    },
-                  },
-                },
-              ],
-            });
-
-            return new Promise((resolve, reject) => {
-              cloudFront.getSignedCookie({
-                policy,
-              }, (err, resp) => {
-                if (err) {
-                  console.error(`cloudFront.getSignedCookie failed`)
-                  console.error(err)
-                  return reject(err)
-                }
-                log({ resp })
-                return resolve(resp)
-              });
-            })
-
-          }
-
-          exports.handler = async (event, context, callback) => {
-            log({ event });
-
-            if (cloudFrontKeyPair === null) {
-              await loadCloudFrontKeyPairFromSecretsManager();
-            }
-
-            const request = event.Records[0].cf.request;
-            const headers = request.headers;
-
-            if (request.querystring && request.querystring.length > 0) {
-              const signedCookies = await getSignedCookies()
-              log({ signedCookies })
-
-              const respHeaders = {};
-              respHeaders['set-cookie'] = [];
-              const cloudFrontSignedCookieHeaderKeys = ['CloudFront-Key-Pair-Id', 'CloudFront-Policy', 'CloudFront-Signature'];
-              cloudFrontSignedCookieHeaderKeys.forEach((key) => {
-                const value = signedCookies[key]
-                respHeaders['set-cookie'].push({
-                  key: "Set-Cookie",
-                  value: key + `=` + value + `; domain=${DomainName}; path=/; httpOnly=true`
-                })
-              })
-
-              const response = {
-                status: "302",
-                statusDescription: "Found",
-                headers: respHeaders
-              }
-
-              response.headers.location =[{
-                key: "Location",
-                value: "/",
-              }]
-
-              log({ response })
-              return response;
-            } else {
-              const body = "Unauthorized";
-              const response = {
-                status: "401",
-                statusDescription: "Unauthorized",
-                body: body,
-                headers: {}
-              };
-              log({ response })
-              return response;
-            }
-          };
-
-  LambdaEdgeLoginFunctionRole:
-    Type: "AWS::IAM::Role"
-    Properties:
-        Path: "/"
-        ManagedPolicyArns:
-            - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-        Policies:
-          - PolicyName: SecretsManagerGetSecretValue
-            PolicyDocument:
-              Version: 2012-10-17
-              Statement:
-                - Effect: "Allow"
-                  Action:
-                    - "secretsmanager:GetSecretValue"
-                  Resource: !Ref CloudFrontKeyPairIdSecret
-                - Effect: "Allow"
-                  Action:
-                    - "secretsmanager:GetSecretValue"
-                  Resource: !Ref CloudFrontKeyPairPrivateKeySecret
-                - Effect: "Allow"
-                  Action:
-                    - "secretsmanager:GetSecretValue"
-                  Resource: !Ref CloudFrontKeyPairPublicKeySecret                  
-        AssumeRolePolicyDocument:
-          Version: "2012-10-17"
+      Policies:      
+        - LambdaInvokePolicy:
+            FunctionName: !Ref DecodeVerifyJwtFunction
+        - Version: 2012-10-17
           Statement:
-            -
-              Sid: "AllowLambdaServiceToAssumeRole"
-              Effect: "Allow"
-              Action: 
-                - "sts:AssumeRole"
-              Principal:
-                Service: 
-                  - "lambda.amazonaws.com"
-                  - "edgelambda.amazonaws.com"
+            - Effect: "Allow"
+              Action:
+                - "secretsmanager:GetSecretValue"
+              Resource: !Ref CloudFrontKeyPairIdSecret
+            - Effect: "Allow"
+              Action:
+                - "secretsmanager:GetSecretValue"
+              Resource: !Ref CloudFrontKeyPairPrivateKeySecret
+            - Effect: "Allow"
+              Action:
+                - "secretsmanager:GetSecretValue"
+              Resource: !Ref CloudFrontKeyPairPublicKeySecret                  
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Sid: "AllowLambdaServiceToAssumeRole"
+            Effect: "Allow"
+            Action: 
+              - "sts:AssumeRole"
+            Principal:
+              Service: 
+                - "lambda.amazonaws.com"
+                - "edgelambda.amazonaws.com"                
+
+
+
+  # LambdaEdgeLoginFunctionRole:
+  #   Type: "AWS::IAM::Role"
+  #   Properties:
+  #       Path: "/"
+  #       ManagedPolicyArns:
+  #           - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+  #       Policies:
+  #         - PolicyName: SecretsManagerGetSecretValue
+  #           PolicyDocument:
+  #             Version: 2012-10-17
+  #             Statement:
+  #               - Effect: "Allow"
+  #                 Action:
+  #                   - "secretsmanager:GetSecretValue"
+  #                 Resource: !Ref CloudFrontKeyPairIdSecret
+  #               - Effect: "Allow"
+  #                 Action:
+  #                   - "secretsmanager:GetSecretValue"
+  #                 Resource: !Ref CloudFrontKeyPairPrivateKeySecret
+  #               - Effect: "Allow"
+  #                 Action:
+  #                   - "secretsmanager:GetSecretValue"
+  #                 Resource: !Ref CloudFrontKeyPairPublicKeySecret                  
+  #       AssumeRolePolicyDocument:
+  #         Version: "2012-10-17"
+  #         Statement:
+  #           -
+  #             Sid: "AllowLambdaServiceToAssumeRole"
+  #             Effect: "Allow"
+  #             Action: 
+  #               - "sts:AssumeRole"
+  #             Principal:
+  #               Service: 
+  #                 - "lambda.amazonaws.com"
+  #                 - "edgelambda.amazonaws.com"
 
   LambdaEdgeAuthFunction:
     Type: AWS::Serverless::Function
@@ -601,68 +511,9 @@ Resources:
       Role: !GetAtt LambdaEdgeAuthFunctionRole.Arn
       Runtime: nodejs12.x
       Handler: index.handler
+      CodeUri: ./src/lambda/basic-auth
       Timeout: 5
       AutoPublishAlias: live
-      InlineCode:
-        !Sub |
-          // basic auth
-          "use strict";
-
-          const AWS = require("aws-sdk");
-          const secretsmanager = new AWS.SecretsManager();
-          const fs = require("fs");
-
-          const log = o => console.log(JSON.stringify(o));
-
-          // cache expensive operation of loading users from secrets manager
-          let userAuthStrings = null;
-
-          const loadUserAuthStrings = async () => {
-            const resp = await secretsmanager
-              .getSecretValue({
-                SecretId: "${UsersSecret}"
-              })
-              .promise();
-            const users = JSON.parse(resp.SecretString).users;
-            userAuthStrings = users.map(
-              user =>
-                "Basic " +
-                new Buffer(user.username + ":" + user.password).toString("base64")
-            );
-          };
-
-          exports.handler = async (event, context, callback) => {
-            log({ event });
-
-            if (userAuthStrings === null) {
-              await loadUserAuthStrings();
-            }
-
-            // Get request and request headers
-            const request = event.Records[0].cf.request;
-            const headers = request.headers;
-
-            // Require Basic authentication
-            if (
-              typeof headers.authorization == "undefined" ||
-              !userAuthStrings.includes(headers.authorization[0].value)
-              //headers.authorization[0].value != authString
-            ) {
-              const body = "Unauthorized";
-              const response = {
-                status: "401",
-                statusDescription: "Unauthorized",
-                body: body,
-                headers: {
-                  "www-authenticate": [{ key: "WWW-Authenticate", value: "Basic" }]
-                }
-              };
-              return response;
-            } else {
-              // Continue request processing if authentication passed
-              return request;
-            }
-          };
 
   LambdaEdgeAuthFunctionRole:
     Type: "AWS::IAM::Role"
@@ -691,6 +542,20 @@ Resources:
                 Service: 
                   - "lambda.amazonaws.com"
                   - "edgelambda.amazonaws.com"
+
+  DecodeVerifyJwtFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: 
+      Runtime: nodejs12.x
+      Handler: index.handler
+      CodeUri: ./src/lambda/decode-verify-jwt
+      Timeout: 5
+      AutoPublishAlias: live
+      Environment:
+        Variables:
+          COGNITO_POOL_ID: !Ref UserPool
+          
 
   CloudFrontWebACL:
     Type: AWS::WAFv2::WebACL
@@ -929,6 +794,65 @@ Resources:
       Roles: [!Ref AutomationRole]
       Users: [!Ref AutomationUser]
 
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub "${AWS::StackName}-UserPool"
+      # Schema:
+      #   - Name: email
+      #     AttributeDataType: String
+      #     Mutable: false
+      #     Required: true        
+      # UsernameAttributes:
+      #   - email
+      # AliasAttributes:
+      #   - email
+      # AutoVerifiedAttributes:
+      #   - email        
+      
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub "${AWS::StackName}-UserPoolClient"
+      GenerateSecret: false
+      UserPoolId: !Ref UserPool
+      SupportedIdentityProviders:
+        - COGNITO
+        - !Ref UserPoolIdentityProvider
+      CallbackURLs:
+        - !Sub "https://${DomainName}${LoginPageRelativePath}/"
+        - !Sub "https://${DomainName}${LoginPageRelativePath}/redirect.html"
+        - !Sub "https://${DomainName}${LoginPageRelativePath}/auth/"
+
+      LogoutURLs:
+        - !Sub "https://${DomainName}/logout/"
+      AllowedOAuthFlows:
+        - code
+        - implicit
+      AllowedOAuthScopes:
+        - email
+        - openid
+      AllowedOAuthFlowsUserPoolClient: true
+
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Sub "${BareDomainName}"
+      UserPoolId: !Ref UserPool
+
+  UserPoolIdentityProvider:
+    Type: AWS::Cognito::UserPoolIdentityProvider
+    Properties:
+      UserPoolId: !Ref UserPool
+      ProviderName: "auth0"
+      ProviderDetails:
+        MetadataURL: "https://svc.auth0.com/samlp/metadata/0x3e4zVFCnvHwF7UGT2GZYUHgA0Y6tJo"
+      ProviderType: "SAML"
+      AttributeMapping:
+        email: "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"
+      IdpIdentifiers:
+        - "auth0"
+
 Outputs:
   WebsiteBucketName:
     Description: The logical ID of the website bucket
@@ -1004,4 +928,22 @@ Outputs:
     Description: AWSAccessKeyId of new user
   SecretKey:
     Value: !GetAtt AutomationUserAccessKey.SecretAccessKey
-    Description: AWSSecretAccessKey of new user    
+    Description: AWSSecretAccessKey of new user
+  UserPoolId:
+    Value: !Ref UserPool
+    Description: UserPool Id
+  UserPoolArn:
+    Value: !GetAtt UserPool.Arn
+    Description: UserPool Arn
+  UserPoolProviderName:
+    Value: !GetAtt UserPool.ProviderName
+    Description: UserPool Provider Name
+  UserPoolProviderURL:
+    Value: !GetAtt UserPool.ProviderURL
+    Description: UserPool Provider URL
+  UserPoolClientId:
+    Value: !Ref UserPoolClient
+    Description: UserPoolClient Id
+  UserPoolIdentityProviderID:
+    Value: !Ref UserPoolIdentityProvider
+    Description: UserPoolIdentityProvider Id

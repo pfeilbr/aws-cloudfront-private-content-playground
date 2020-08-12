@@ -97,9 +97,11 @@ deploy_to_git_tag() {
   echo -e "Deploying ${tag_name}"
   sync_s3 ${content_directory_path} ${bucket_name} ${tag_name}
   create_routing_rules "${bucket_name}" "${tag_name}"
-  change_origin_path ${tag_name} ${cloudfront_distribution_id}
-  aws cloudfront wait distribution-deployed --id ${cloudfront_distribution_id}
-  invalidate_cache ${cloudfront_distribution_id}
+
+  # TODO: commented out for dev purposes
+  # change_origin_path ${tag_name} ${cloudfront_distribution_id}
+  # aws cloudfront wait distribution-deployed --id ${cloudfront_distribution_id}
+  # invalidate_cache ${cloudfront_distribution_id}
 }
 
 replace_in_file() {

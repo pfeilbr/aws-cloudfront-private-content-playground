@@ -5,10 +5,14 @@ set -o nounset
 set -o pipefail
 set -o noglob
 
+TEMPLATE="template.yaml"
+PACKAGED_TEMPLATE="packaged.yaml"
+S3_BUCKET="${S3_SAM_DEPLOY_BUCKET}"
 REGION="us-east-1"
 PROVISIONING_STACK_NAME="dev-bootstrap-private-website"
 STACK_NAME="dev-private-website"
-DOMAIN_NAME="allthecloudbits.com"
+BARE_DOMAIN_NAME="allthecloudbits"
+DOMAIN_NAME="${BARE_DOMAIN_NAME}.com"
 STAGING_DOMAIN_NAME="staging.allthecloudbits.com"
 API_DOMAIN_NAME="httpbin.org"
 AUTOMATION_USER_PASSWORD="automation123"
@@ -43,11 +47,17 @@ bootstrap() {
 }
 
 create() {
-    aws cloudformation deploy \
+    sam package \
+        --template-file "${TEMPLATE}" \
+        --s3-bucket "${S3_BUCKET}" \
+        --output-template-file "${PACKAGED_TEMPLATE}"
+
+    sam deploy \
+        --template-file "${PACKAGED_TEMPLATE}" \
+        --s3-bucket "${S3_BUCKET}" \
         --region "${REGION}" \
-        --template cfn-templates/template.yaml \
         --stack-name ${STACK_NAME} \
-        --parameter-overrides DomainName=${DOMAIN_NAME} StagingDomainName=${STAGING_DOMAIN_NAME} ApiDomainName=${API_DOMAIN_NAME} AutomationUserPassword=${AUTOMATION_USER_PASSWORD} \
+        --parameter-overrides BareDomainName=${BARE_DOMAIN_NAME} DomainName=${DOMAIN_NAME} StagingDomainName=${STAGING_DOMAIN_NAME} ApiDomainName=${API_DOMAIN_NAME} AutomationUserPassword=${AUTOMATION_USER_PASSWORD} \
         --capabilities CAPABILITY_IAM \
         --tags \
             Name=tagName \
