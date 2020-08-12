@@ -1,0 +1,94 @@
+{
+    "Records": [
+        {
+            "cf": {
+                "config": {
+                    "distributionDomainName": "d2nq8snyqtx532.cloudfront.net",
+                    "distributionId": "E10VQEFPPFO64L",
+                    "eventType": "viewer-request",
+                    "requestId": "fVrASIOMCLDD2jIHp50VFXHGS4_nr2ek_gGLpswaP54cGcnX5Qy5yg=="
+                },
+                "request": {
+                    "clientIp": "100.11.117.63",
+                    "headers": {
+                        "host": [
+                            {
+                                "key": "Host",
+                                "value": "staging.allthecloudbits.com"
+                            }
+                        ],
+                        "user-agent": [
+                            {
+                                "key": "User-Agent",
+                                "value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36"
+                            }
+                        ],
+                        "pragma": [
+                            {
+                                "key": "pragma",
+                                "value": "no-cache"
+                            }
+                        ],
+                        "cache-control": [
+                            {
+                                "key": "cache-control",
+                                "value": "no-cache"
+                            }
+                        ],
+                        "authorization": [
+                            {
+                                "key": "authorization",
+                                "value": "Basic dXNlcjAxOnBhc3N3b3JkMDE="
+                            }
+                        ],
+                        "accept": [
+                            {
+                                "key": "accept",
+                                "value": "image/webp,image/apng,image/*,*/*;q=0.8"
+                            }
+                        ],
+                        "sec-fetch-site": [
+                            {
+                                "key": "sec-fetch-site",
+                                "value": "same-origin"
+                            }
+                        ],
+                        "sec-fetch-mode": [
+                            {
+                                "key": "sec-fetch-mode",
+                                "value": "no-cors"
+                            }
+                        ],
+                        "sec-fetch-dest": [
+                            {
+                                "key": "sec-fetch-dest",
+                                "value": "image"
+                            }
+                        ],
+                        "referer": [
+                            {
+                                "key": "referer",
+                                "value": "https://staging.allthecloudbits.com/"
+                            }
+                        ],
+                        "accept-encoding": [
+                            {
+                                "key": "accept-encoding",
+                                "value": "gzip, deflate, br"
+                            }
+                        ],
+                        "accept-language": [
+                            {
+                                "key": "accept-language",
+                                "value": "en-US,en;q=0.9"
+                            }
+                        ]
+                    },
+                    "method": "GET",
+                    "querystring": "",
+                    "uri": "/"
+                }
+            }
+        }
+    ]
+}

@@ -95,7 +95,7 @@ const forbiddenResponse = () => ({
   headers: {},
 });
 
-const getSignedCookies302RedirectResponse = (location) => {
+const getSignedCookies302RedirectResponse = async (location) => {
   // cache because expensive (time) operation
   if (cloudFrontKeyPair === null) {
     await loadCloudFrontKeyPairFromSecretsManager();
@@ -134,7 +134,7 @@ const getSignedCookies302RedirectResponse = (location) => {
   ];
 
   return response;
-}
+};
 
 const getValidateAccessTokenResult = async (token) => {
   const lambdaParams = {
@@ -150,21 +150,20 @@ const getValidateAccessTokenResult = async (token) => {
   //   "StatusCode": 200,
   //   "ExecutedVersion": "$LATEST",
   //   "Payload": "{\"userName\":\"auth0_auth0|5f329b4f73edc1003d5f5d73\",\"clientId\":\"3al3r1fatr213ndvp2uoqcfgi9\",\"isValid\":true}"
-  // }  
-
+  // }
 
   // e.g. lambdaInvokeResp.Payload
   // {
   //   "userName": "auth0_auth0|5f329b4f73edc1003d5f5d73",
   //   "clientId": "3al3r1fatr213ndvp2uoqcfgi9",
   //   "isValid": true
-  // }  
+  // }
   if (lambdaInvokeResp && lambdaInvokeResp.Payload) {
     const decodeVerifyJwtResponse = JSON.parse(lambdaInvokeResp.Payload);
     return decodeVerifyJwtResponse;
   }
   return null;
-}
+};
 
 exports.handler = async (event, context, callback) => {
   log({ event });
@@ -177,16 +176,17 @@ exports.handler = async (event, context, callback) => {
     log({ params });
 
     const token = params["access_token"];
-    const decodeVerifyJwtResponse = await getValidateAccessTokenResult(token)
-    log({ decodeVerifyJwtResponse })
+    const decodeVerifyJwtResponse = await getValidateAccessTokenResult(token);
+    log({ decodeVerifyJwtResponse });
     let response = forbiddenResponse();
     if (decodeVerifyJwtResponse && decodeVerifyJwtResponse.isValid) {
-      response = getSignedCookies302RedirectResponse("/")
+      response = getSignedCookies302RedirectResponse("/");
     }
 
     log({ response });
     return response;
-  } else { // pass through request to S3
+  } else {
+    // pass through request to S3
     return request;
   }
 };

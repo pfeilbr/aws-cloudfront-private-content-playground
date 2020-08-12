@@ -16,16 +16,37 @@ This infrastructure provisioning and deployment pipeline performs an atomic depl
 ## Infrastructure Provisioning Steps
 
 1. manually create a [public route 53 hosted zone](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/AboutHZWorkingWith.html) for your domain name (e.g. `mydomain.com`)
-1. update `DOMAIN_NAME` parameter in [`scripts/stack.sh`](scripts/stack.sh) with the hosted zone name 
-1. provision aws resources `./scripts/stack.sh create`
-1. Check [ACM in AWS Console](https://console.aws.amazon.com/acm/home) to confirm Certificate validation via DNS validation has completed.  May need to add [DNS validation records to route 53 hosted zone](https://docs.aws.amazon.com/acm/latest/userguide/gs-acm-validate-dns.html).
-1. update pipeline variables
+2. update `DOMAIN_NAME` parameter in [`./run.sh`](./run.sh) with the hosted zone name 
+3. provision aws resources `./run.sh deploy-infrastructure`
+4. Check [ACM in AWS Console](https://console.aws.amazon.com/acm/home) to confirm Certificate validation via DNS validation has completed.  May need to add [DNS validation records to route 53 hosted zone](https://docs.aws.amazon.com/acm/latest/userguide/gs-acm-validate-dns.html).
+5. update pipeline variables
     * REGION - *default is us-east-1*
-    * STACK_NAME - defined in [`scripts/stack.sh`](scripts/stack.sh)
+    * STACK_NAME - defined in [`./run.sh`](./run.sh)
     * AWS_ACCESS_KEY_ID - `AccessKey` output in `./tmp/${STACK_NAME}-outputs.json`
     * AWS_SECRET_ACCESS_KEY - `SecretKey` output in `./tmp/${STACK_NAME}-outputs.json`
 
-## Website Content Publishing Steps
+## Website Content Publishing From Local Machine Steps
+
+1. update website content in [`public`](public) directory
+1. run one of the following deployment commands: 
+    ```sh
+    # format
+    ./run.sh publish-content staging|prod [--blue-green-publish] [--apply-routing-rules] [--invalidate-cloudfront-cache]
+
+    # example(s)
+
+    # full blue/green deploy with routing rules and cloudfront cache invalidation
+    ./run.sh publish-content staging --blue-green-publish --apply-routing-rules --invalidate-cloudfront-cache
+    ./run.sh publish-content prod --blue-green-publish --apply-routing-rules --invalidate-cloudfront-cache
+
+    # content only update to staging
+    ./run.sh publish-content staging
+
+    # content only update to production
+    ./run.sh publish-content prod
+    ```
+
+## Website Content Publishing via Commit Steps
 
 1. ensure you have `develop` branch checked out *(this corresponds to staging environment)*
 1. update website content in [`public`](public) directory and push to github.
@@ -39,10 +60,10 @@ This infrastructure provisioning and deployment pipeline performs an atomic depl
 
 ## Deprovisioning
 
-1. deprovision aws resources `./scripts/stack.sh delete`
+1. deprovision aws resources `./run.sh delete-infrastructure`
 1. *(optional)* manually delete S3 website and CloudFront logs buckets.
     > these are not deleted because they still contain objects
-1. *(optional)* run `./scripts/stack.sh delete` **again** to permanently delete stack
+1. *(optional)* run `./run.sh delete-infrastructure` **again** to permanently delete stack
 
 
 ---
@@ -51,7 +72,6 @@ This infrastructure provisioning and deployment pipeline performs an atomic depl
 
 1. visit <https://allthecloudbits.com>
 1. sign in with  Auth0 test user.  user01@example.com / password01
-
 
 ## Staging Docs
 
@@ -120,6 +140,12 @@ export BUILD_SOURCEBRANCHNAME="master"
 #export BUILD_SOURCEVERSION=$(LC_CTYPE=C tr -dc A-Za-z0-9 < /dev/urandom | fold -w ${1:-32} | head -n 1)
 export BUILD_SOURCEVERSION="v0.0.1"
 ./scripts/publish.sh
+
+
+sam local invoke -e src/lambda/login/event.json "LambdaEdgeLoginFunction"
+sam local invoke -e src/lambda/decode-verify-jwt/event.json "DecodeVerifyJwtFunction"
+sam local invoke -e src/lambda/basic-auth/event.json "LambdaEdgeAuthFunction"
+
 ```
 
 ```js
@@ -192,8 +218,22 @@ https://allthecloudbits.com/login/
 }
 ```
 
+tokens
+
 ```sh
 https://allthecloudbits.com/login/#access_token=eyJraWQiOiJqdzNzaUhDU2NxeWVhMnliKytkeHNNZXBnVk5JSE5Bc1pQVldKUVJPUW1BPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiIxM2VkODk4Ni1hZjc2LTQzYWYtOGU5Mi01ZDdjMzM1ODQ1MzEiLCJjb2duaXRvOmdyb3VwcyI6WyJ1cy1lYXN0LTFfUVVTTlhXc3hMX2F1dGgwIl0sInRva2VuX3VzZSI6ImFjY2VzcyIsInNjb3BlIjoib3BlbmlkIGVtYWlsIiwiYXV0aF90aW1lIjoxNTk3MTU5NzEzLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9RVVNOWFdzeEwiLCJleHAiOjE1OTcxNjMzMTMsImlhdCI6MTU5NzE1OTcxMywidmVyc2lvbiI6MiwianRpIjoiMTE0ZjU3ZWEtNGRkMy00NzU0LWJhN2ItODFmZGNlMGZmYTk2IiwiY2xpZW50X2lkIjoiM2FsM3IxZmF0cjIxM25kdnAydW9xY2ZnaTkiLCJ1c2VybmFtZSI6ImF1dGgwX2F1dGgwfDVmMzI5YjRmNzNlZGMxMDAzZDVmNWQ3MyJ9.K9tKXxDDoOPXa3CBrvGIPEUe2jP5CRf0AOL0_zhZgv9ej2kWU-gKcLLmIs9xkGwwCGciBAuI0pHugmCVYjWGYjw6UscZt54gszpKkAI0LS6Qxr5dzV9K-fC1ZbFLkrufj2xgWAmQ-un4RRcKBLUrog70WhlY5ABx-sHlVpPXAwXY9iiKaDL5NpiMFRFx4jgliulCkjCaSYYrhFzT2BP8iTpvRgvp4mhJ90AyvnFPNLrpJI6-jB_KtqGwIcS9rCCrJpA37n0qJ2KAwWm_BRJBx1_Gh3EzYdFQtfEJ8YCr3rh03zbZ-izvkqDknh49QTiYxR5MUqa16_BzBP8DqQGstQ&id_token=eyJraWQiOiJweElSWFRBMTBlakI3TUpBbnVLS0l1VHo1eTNCcFU4eTUxNUd3Y1lwSHg0PSIsImFsZyI6IlJTMjU2In0.eyJhdF9oYXNoIjoiZkpjcEl2U3Zia2Z5TVRSaVB6VVA4dyIsInN1YiI6IjEzZWQ4OTg2LWFmNzYtNDNhZi04ZTkyLTVkN2MzMzU4NDUzMSIsImNvZ25pdG86Z3JvdXBzIjpbInVzLWVhc3QtMV9RVVNOWFdzeExfYXV0aDAiXSwiZW1haWxfdmVyaWZpZWQiOmZhbHNlLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9RVVNOWFdzeEwiLCJjb2duaXRvOnVzZXJuYW1lIjoiYXV0aDBfYXV0aDB8NWYzMjliNGY3M2VkYzEwMDNkNWY1ZDczIiwibm9uY2UiOiJOdUFIUVZtZUhfT0FTWVRmREJwczJVLXZpNEl3VG5HYlNaUzdOUXVMVXhaSnBXSGxoVWc4TjlCMHltdEY3UE8yVHFxcHhXd0pKekNyWFFKZ1cxRFBueXRpNkhjVUV2dUh6NUctSW5uYk90akdYbktEcnNiTHRYRHBFOTRYLXBfMUk0RFRYUlNNeElGTnhEU0w0SGJma05IWkxxQVU1ZXJzcmUwWFlLVHNkNkkiLCJhdWQiOiIzYWwzcjFmYXRyMjEzbmR2cDJ1b3FjZmdpOSIsImlkZW50aXRpZXMiOlt7InVzZXJJZCI6ImF1dGgwfDVmMzI5YjRmNzNlZGMxMDAzZDVmNWQ3MyIsInByb3ZpZGVyTmFtZSI6ImF1dGgwIiwicHJvdmlkZXJUeXBlIjoiU0FNTCIsImlzc3VlciI6InVybjpzdmMuYXV0aDAuY29tIiwicHJpbWFyeSI6InRydWUiLCJkYXRlQ3JlYXRlZCI6IjE1OTcxNTg3NTU1ODMifV0sInRva2VuX3VzZSI6ImlkIiwiYXV0aF90aW1lIjoxNTk3MTU5NzEzLCJleHAiOjE1OTcxNjMzMTMsImlhdCI6MTU5NzE1OTcxMywiZW1haWwiOiJ1c2VyMDFAZXhhbXBsZS5jb20ifQ.J_ALJGY73WT8iz8AEzMM1LCdZTgkZeJ21Dhm05eoZd0RbyI3iChHZhR7T7wqBMzFSDdhTBvqen1rGKlZXZ25JODTRFIDJEMQqxPr1oC-8j-X4l1futecOUKlMybMuOrf01uMmJKvh6HRqNagtK_2m3saOCNBrYQmw-bEkiqjLmSo6CMyJEcQfCiWUvZ-xaev7oXY1-8KUkrP_rf_Z5Mov0V2yluFk6UP39rCEr7qUz1aKqMElqQiBNIamfoi6rB3oPM4qth1v92w_u1zrdtuCNBPlWqoKglejXfykPvH3Rjus2yW3I1ILzPLTxkt7mcfBuyjYBKV_zRxsDRmN1yo0g&token_type=Bearer&expires_in=3600
+```
+
+tokens broken out
+
+```sh
+id_token=eyJraWQiOiJweElSWFRBMTBlakI3TUpBbnVLS0l1VHo1eTNCcFU4eTUxNUd3Y1lwSHg0PSIsImFsZyI6IlJTMjU2In0.eyJhdF9oYXNoIjoiMG02X2pacDh6U0RGVWZsSUYtb18yZyIsInN1YiI6IjEzZWQ4OTg2LWFmNzYtNDNhZi04ZTkyLTVkN2MzMzU4NDUzMSIsImNvZ25pdG86Z3JvdXBzIjpbInVzLWVhc3QtMV9RVVNOWFdzeExfYXV0aDAiXSwiZW1haWxfdmVyaWZpZWQiOmZhbHNlLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9RVVNOWFdzeEwiLCJjb2duaXRvOnVzZXJuYW1lIjoiYXV0aDBfYXV0aDB8NWYzMjliNGY3M2VkYzEwMDNkNWY1ZDczIiwiYXVkIjoiM2FsM3IxZmF0cjIxM25kdnAydW9xY2ZnaTkiLCJpZGVudGl0aWVzIjpbeyJ1c2VySWQiOiJhdXRoMHw1ZjMyOWI0ZjczZWRjMTAwM2Q1ZjVkNzMiLCJwcm92aWRlck5hbWUiOiJhdXRoMCIsInByb3ZpZGVyVHlwZSI6IlNBTUwiLCJpc3N1ZXIiOiJ1cm46c3ZjLmF1dGgwLmNvbSIsInByaW1hcnkiOiJ0cnVlIiwiZGF0ZUNyZWF0ZWQiOiIxNTk3MTU4NzU1NTgzIn1dLCJ0b2tlbl91c2UiOiJpZCIsImF1dGhfdGltZSI6MTU5NzE3NjM4MywiZXhwIjoxNTk3MTc5OTgzLCJpYXQiOjE1OTcxNzYzODQsImVtYWlsIjoidXNlcjAxQGV4YW1wbGUuY29tIn0.HTAVp_VeZYnekdMgfFqiN2P4cEkY8R9T-T72omgaKU9k00-Nv_yCCrUGukzILO6_U0-UyBHhMPVu1EBByT3fKv9rtzB_5SvTLLeQhwj82ELX9_ZIrUNgVGj_bT1NCEOoLw6_HwF-hKX4gxiSiPgkOpxEsVwDLOjNAx7Jm2Bt49gZWB1DBrIsCBeIB3tEbW-2uf46eOKsJ9PilTJIY_ePLM1zr1QOal0FDUAqT44bQaEcKPKjSpYaAD4MVHnih3KDdLqoRzedJMeaIrTW8_eMODZ7GwniVcs0mDe5Z0D1wYC8iTajOtlyHEZHhAaDdw0YGvHdVWz8eGrLmVsCSdF7DA
+
+&access_token=eyJraWQiOiJqdzNzaUhDU2NxeWVhMnliKytkeHNNZXBnVk5JSE5Bc1pQVldKUVJPUW1BPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiIxM2VkODk4Ni1hZjc2LTQzYWYtOGU5Mi01ZDdjMzM1ODQ1MzEiLCJjb2duaXRvOmdyb3VwcyI6WyJ1cy1lYXN0LTFfUVVTTlhXc3hMX2F1dGgwIl0sInRva2VuX3VzZSI6ImFjY2VzcyIsInNjb3BlIjoib3BlbmlkIGVtYWlsIiwiYXV0aF90aW1lIjoxNTk3MTc2MzgzLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9RVVNOWFdzeEwiLCJleHAiOjE1OTcxNzk5ODMsImlhdCI6MTU5NzE3NjM4NCwidmVyc2lvbiI6MiwianRpIjoiZGMxMjZkMWQtMDFlNy00NWY2LThlZmQtMmViZjMyMzhkNTNkIiwiY2xpZW50X2lkIjoiM2FsM3IxZmF0cjIxM25kdnAydW9xY2ZnaTkiLCJ1c2VybmFtZSI6ImF1dGgwX2F1dGgwfDVmMzI5YjRmNzNlZGMxMDAzZDVmNWQ3MyJ9.UufAOCwINbVT9E_j61wOgjpkaSuLxWej2hOT26l8mQmCWidylKFVYlyb90ynxXuOoE2vMcWiwvlwla6vH1SCaV_LvSCpQLBoXueWj97S29XxBJBlUBo8AAe8i5es8D9kbSPuwjhfmC50KgumXZWOzANrU5jrfeCRMdqPPrllNnd_3yJQTlQuLXdB9vuao8VYj71Pbb2gUC945mKyluqidl-71Hkl0FmSr0Uvwf0ILZlUwzf7uu-aOVOnSuWlz5cFjbnWT9AEaAcFYkrYCx2OiSgUb-0vsLYN1RkBoi-ZfcHVERQek5lYDimt3MwetdhgLZ0Q2vlBA9V4chkfnE3aXw
+
+&expires_in=3600
+
+&token_type=Bearer
 ```
 
 Encoded SAML response from Auth0

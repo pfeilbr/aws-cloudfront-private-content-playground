@@ -7,12 +7,13 @@ const fs = require("fs");
 
 const log = (o) => console.log(JSON.stringify(o));
 
+const UsersSecret = `arn:aws:secretsmanager:us-east-1:529276214230:secret:UsersSecret-CTvtLRJcyv5c-HKzBxa`;
 let userAuthStrings = null;
 
 const loadUserAuthStrings = async () => {
   const resp = await secretsmanager
     .getSecretValue({
-      SecretId: "${UsersSecret}",
+      SecretId: `${UsersSecret}`,
     })
     .promise();
   const users = JSON.parse(resp.SecretString).users;
