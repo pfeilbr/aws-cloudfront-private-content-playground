@@ -825,8 +825,8 @@ Resources:
       GenerateSecret: false
       UserPoolId: !Ref UserPool
       SupportedIdentityProviders:
-        - COGNITO
         - !Ref UserPoolIdentityProvider
+        # - COGNITO        
       CallbackURLs:
         - !Sub "https://${DomainName}${LoginPageRelativePath}/"
         - !Sub "https://${DomainName}${LoginPageRelativePath}/redirect.html"

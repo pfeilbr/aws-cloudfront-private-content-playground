@@ -99,6 +99,7 @@ This infrastructure provisioning and deployment pipeline performs an atomic depl
 
 ## TODO
 
+* customize cognito login hosted ui.  remove signup, etc.
 * `create-react-app`
 * add logout link
 
