@@ -22,6 +22,13 @@ Parameters:
     Description: The domain name.
     Default: staging.allthecloudbits.com
 
+
+  CloudFrontKeyPairId:
+    Type: String
+    Description: The CloudFront Key Pair Id used to create signed cookies.
+    Default: "APKAJK35MM4IQ2LXQOFA"
+
+
   LoginPageRelativePath:
     Type: String
     Description: >
@@ -444,15 +451,50 @@ Resources:
             - Effect: "Allow"
               Action:
                 - "secretsmanager:GetSecretValue"
-              Resource: !Ref CloudFrontKeyPairIdSecret
-            - Effect: "Allow"
-              Action:
-                - "secretsmanager:GetSecretValue"
               Resource: !Ref CloudFrontKeyPairPrivateKeySecret
             - Effect: "Allow"
               Action:
-                - "secretsmanager:GetSecretValue"
-              Resource: !Ref CloudFrontKeyPairPublicKeySecret                  
+                - "ssm:DescribeParameters"
+                - "ssm:GetParameters"
+                - "ssm:GetParameter"
+                - "ssm:GetParametersByPath"
+              Resource: "*"
+            - Effect: "Allow"
+              Action:
+                - "ssm:GetParameters"
+                - "ssm:GetParameter"
+                - "ssm:GetParametersByPath"
+              Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${DomainNameParameter}"
+            - Effect: "Allow"
+              Action:
+                - "ssm:GetParameters"
+                - "ssm:GetParameter"
+                - "ssm:GetParametersByPath"
+              Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${UserPoolClientIdParameter}"
+            - Effect: "Allow"
+              Action:
+                - "ssm:GetParameters"
+                - "ssm:GetParameter"
+                - "ssm:GetParametersByPath"
+              Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${CloudFrontKeyPairIdParameter}"
+            - Effect: "Allow"
+              Action:
+                - "ssm:GetParameters"
+                - "ssm:GetParameter"
+                - "ssm:GetParametersByPath"
+              Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${CloudFrontKeyPairPublicKeyParameter}"
+            - Effect: "Allow"
+              Action:
+                - "ssm:GetParameters"
+                - "ssm:GetParameter"
+                - "ssm:GetParametersByPath"
+              Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${CloudFrontKeyPairPrivateKeySecretsPathParameter}"
+            - Effect: "Allow"
+              Action:
+                - "ssm:GetParameters"
+                - "ssm:GetParameter"
+                - "ssm:GetParametersByPath"
+              Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${DecodeVerifyJwtFunctionNameParameter}"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -591,17 +633,6 @@ Resources:
               Name: AWSManagedRulesCommonRuleSet
               ExcludedRules: []
 
-  CloudFrontKeyPairIdSecret:
-    Type: "AWS::SecretsManager::Secret"
-    Properties:
-      Description: |
-        The ID of the CloudFront key pair being used to create signed cookies.
-        
-        NOTE: demo purposes only to store in cfn.  Would be defined via 
-        AWS Console and referenced for production use.
-
-      SecretString: "APKAJK35MM4IQ2LXQOFA"
-
   CloudFrontKeyPairPrivateKeySecret:
     Type: "AWS::SecretsManager::Secret"
     Properties:
@@ -640,25 +671,6 @@ Resources:
         vmy5p7BZyC+KwJc/143U41hqzaSPk+SmiWPwtneGCx3n4Ada7Sls
         -----END RSA PRIVATE KEY-----
 
-  CloudFrontKeyPairPublicKeySecret:
-    Type: "AWS::SecretsManager::Secret"
-    Properties:
-      Description: |
-        CloudFront Key Pair public key used to create signed cookies.
-
-        NOTE: demo purposes only to store in cfn.  Would be defined via 
-        AWS Console and referenced for production use.
-      SecretString: |
-        -----BEGIN PUBLIC KEY-----
-        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuBPb7Lpb8vGpSiDyk5lq
-        AT22AQUFNr7NvOktSBPH+gHnRS1nxBnffGit1vxQT3I4tF9f3pF62LOPyLRD1k0y
-        5FnQwkZxQiG+Cja60adGByK6K4DtE4Q1CVakICg97ahr9KyifgTi9bH2yGxZyOMJ
-        Z1NYjLTc4LhiPA1ZUntsjgzXKPF9hfoYggzOFWds0tTZiin7YE7YFM3B+rhnnSMA
-        cG5ryRbt9AOmY2pkGbwe3KUqcm6tQUagdkdXV/hQQX6svPVB+/TvECMXYmKJwtUW
-        q79PiDXOokFnDpJ/3wDZTH4LamPYXukgtDQr4KlfWBYbbixyMgVqfxR+biHHwEUU
-        iQIDAQAB
-        -----END PUBLIC KEY-----
-
   UsersSecret:
     Type: "AWS::SecretsManager::Secret"
     Properties:
@@ -684,6 +696,68 @@ Resources:
                 }
             ]
         }      
+
+  DomainNameParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/DomainName"
+      Description: website domain name.
+      Type: String
+      Value: !Sub "${DomainName}"
+
+  UserPoolClientIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/UserPoolClientId"
+      Description: user pool client id.
+      Type: String
+      Value: !Ref UserPoolClient
+
+  DecodeVerifyJwtFunctionNameParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/DecodeVerifyJwtFunctionName"
+      Description: decode verify JWT function name.
+      Type: String
+      Value: !Ref DecodeVerifyJwtFunction
+
+  CloudFrontKeyPairIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/CloudFrontKeyPairId"
+      Description: CloudFront KeyPair Id.
+      Type: String
+      Value: !Sub "${CloudFrontKeyPairId}"
+
+  CloudFrontKeyPairPublicKeyParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/CloudFrontKeyPairPublicKey"
+      Type: String
+      Description: |
+        CloudFront Key Pair public key used to create signed cookies.
+
+        NOTE: demo purposes only to store in cfn.  Would be defined via 
+        AWS Console and referenced for production use.  
+      Value: |
+        -----BEGIN PUBLIC KEY-----
+        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuBPb7Lpb8vGpSiDyk5lq
+        AT22AQUFNr7NvOktSBPH+gHnRS1nxBnffGit1vxQT3I4tF9f3pF62LOPyLRD1k0y
+        5FnQwkZxQiG+Cja60adGByK6K4DtE4Q1CVakICg97ahr9KyifgTi9bH2yGxZyOMJ
+        Z1NYjLTc4LhiPA1ZUntsjgzXKPF9hfoYggzOFWds0tTZiin7YE7YFM3B+rhnnSMA
+        cG5ryRbt9AOmY2pkGbwe3KUqcm6tQUagdkdXV/hQQX6svPVB+/TvECMXYmKJwtUW
+        q79PiDXOokFnDpJ/3wDZTH4LamPYXukgtDQr4KlfWBYbbixyMgVqfxR+biHHwEUU
+        iQIDAQAB
+        -----END PUBLIC KEY-----      
+
+  CloudFrontKeyPairPrivateKeySecretsPathParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/CloudFrontKeyPairPrivateKeySecretsPath"
+      Type: String
+      Description: |
+        CloudFront Key Pair private key secrets manager path.  
+      Value: !Ref CloudFrontKeyPairPrivateKeySecret
 
   DNSRecordSet:
     Type: AWS::Route53::RecordSetGroup
@@ -864,6 +938,9 @@ Resources:
         - "auth0"
 
 Outputs:
+  StackName:
+    Description: The stack name
+    Value: !Sub "${AWS::StackName}"
   WebsiteBucketName:
     Description: The logical ID of the website bucket
     Value: !Ref S3BucketForWebsiteContent
@@ -903,9 +980,6 @@ Outputs:
   CloudFrontKeyPairPrivateKeySecretArn:
     Description: The Arn to the CloudFront Key Pair Private Key Secret
     Value: !Ref CloudFrontKeyPairPrivateKeySecret
-  CloudFrontKeyPairPublicKeySecretArn:
-    Description: The Arn to the CloudFront Key Pair Public Key Secret
-    Value: !Ref CloudFrontKeyPairPublicKeySecret
   CloudFrontLogsBucketName:
     Description: The logical ID of the CloudFront logs bucket
     Value: !Ref CloudFrontLogsBucket

@@ -6,6 +6,8 @@ Explore options for serving private content via [CloudFront](https://aws.amazon.
 
 This infrastructure provisioning and deployment pipeline performs an atomic deploy of private static content from a github repo to a static site (Route 53 + ACM + WAF + Cognito Federated SSO to Auth0 SAML + CloudFront + S3) when a tag (release) is applied to the repo.
 
+---
+
 **Demo Private Static Site**
 
 * <https://staging.allthecloudbits.com/> - pre-production protected by basic auth.  login with Username: user01, Password: password01
@@ -96,23 +98,30 @@ This infrastructure provisioning and deployment pipeline performs an atomic depl
 * Debug SAML
     ![](https://www.evernote.com/l/AAEgpBPAJIZEobg-W98KcjGBQ_4zI1t-t1wB/image.png)
     ![](https://www.evernote.com/l/AAHkehP3TIFFTI-I8rh3nuiA13I7ze6shlAB/image.png)
+
 ---
 
 ## TODO
 
-* customize cognito login hosted ui.  remove signup, etc.
-* `create-react-app`
-* add logout link
+* `src/lambda/login/index.js` - get `${DomainName}`, `DecodeVerifyJwtFunctionName`, `UserPoolClientId`, and CloudFront Key Pair Secrets paths from param store
 
-* cognito federated sso to auth0 saml2. see [Set up Auth0 as a SAML Identity Provider with an Amazon Cognito User Pool](https://aws.amazon.com/premiumsupport/knowledge-center/auth0-saml-cognito-user-pool/)
-* configure CloudFront Error pages to redirect to cognito login URL
-* move `LambdaEdgeLoginFunction` out of template to individual directory and use SAM to deploy
-* add "logout" link that removes cloudfront signed cookies.  must do from server-side as client-side javascript can't access the cookies.  see [Correct way to delete cookies server-side](https://stackoverflow.com/questions/5285940/correct-way-to-delete-cookies-server-side#answer-53573622)
-* define as [AWS Service Catalog](https://aws.amazon.com/servicecatalog/) product using CloudFormation.  See [AWS CloudFormation support for AWS Service Catalog products | AWS Management & Governance Blog](https://aws.amazon.com/blogs/mt/how-to-launch-secure-and-governed-aws-resources-with-aws-cloudformation-and-aws-service-catalog/)
-
+* remove unused secrets manager secrets
+* add architecture diagram to README.md
 * remove `IncludeBody: true` from template.yaml
-* `src/lambda/login/index.js` - get `${DomainName}`, `DecodeVerifyJwtFunctionName` and CloudFront Key Pair Secrets paths from param store
-* DecodeVerifyJwtFunction is split into its own lambda due to lambda@edge code size constraints
+* package as Serverless Application Repository 
+* package as [AWS Service Catalog](https://aws.amazon.com/servicecatalog/) product using CloudFormation.  See [AWS CloudFormation support for AWS Service Catalog products | AWS Management & Governance Blog](https://aws.amazon.com/blogs/mt/how-to-launch-secure-and-governed-aws-resources-with-aws-cloudformation-and-aws-service-catalog/)
+
+## Completed
+
+* ~~cognito federated sso to auth0 saml2. see [Set up Auth0 as a SAML Identity Provider with an Amazon Cognito User Pool](https://aws.amazon.com/premiumsupport/knowledge-center/auth0-saml-cognito-user-pool/)~~
+* ~~configure CloudFront Error pages to redirect to cognito login URL~~
+* ~~move `LambdaEdgeLoginFunction` out of template to individual directory and use SAM to deploy~~
+* ~~DecodeVerifyJwtFunction is split into its own lambda due to lambda@edge code size constraints~~
+* ~~customize cognito login hosted ui.  remove signup, etc.~~
+* ~~`create-react-app`~~
+* ~~add "logout" link that removes cloudfront signed cookies.  must do from server-side as client-side javascript can't access the cookies.  see [Correct way to delete cookies server-side](https://stackoverflow.com/questions/5285940/correct-way-to-delete-cookies-server-side#answer-53573622)~~
+
+---
 
 ## Resources
 

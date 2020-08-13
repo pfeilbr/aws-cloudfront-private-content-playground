@@ -1,6 +1,9 @@
 // login handler
 "use strict";
 
+const SSM = require("aws-sdk/clients/ssm");
+const ssm = new SSM();
+
 const SecretsManager = require("aws-sdk/clients/secretsmanager");
 const secretsmanager = new SecretsManager();
 
@@ -13,11 +16,18 @@ const querystring = require("querystring");
 const jwtDecode = require("jwt-decode");
 const log = (o) => console.log(JSON.stringify(o, null, 2));
 
-// TODO: pull this from parameter store
-const DomainName = "allthecloudbits.com";
-const UserPoolClientId = "3al3r1fatr213ndvp2uoqcfgi9";
-const DecodeVerifyJwtFunctionName =
-  "dev-private-website-DecodeVerifyJwtFunction-1XBZMCJD1VEW2";
+// cache expensive operation of loading config from SSM paramater store and secrets manager
+let Config = null;
+
+const SSMParameterStorePrefixPath = "/dev-private-website/";
+const SSMParameterStoreParameters = [
+  "DomainName",
+  "UserPoolClientId",
+  "DecodeVerifyJwtFunctionName",
+  "CloudFrontKeyPairId",
+  "CloudFrontKeyPairPublicKey",
+  "CloudFrontKeyPairPrivateKeySecretsPath",
+];
 
 const cloudFrontSignedCookieHeaderKeys = [
   "CloudFront-Key-Pair-Id",
@@ -25,53 +35,52 @@ const cloudFrontSignedCookieHeaderKeys = [
   "CloudFront-Signature",
 ];
 
-// cache expensive operation of loading users from secrets manager
-let cloudFrontKeyPair = null;
-
 async function asyncForEach(array, callback) {
   for (let index = 0; index < array.length; index++) {
     await callback(array[index], index, array);
   }
 }
 
-const loadCloudFrontKeyPairFromSecretsManager = async () => {
-  cloudFrontKeyPair = {};
-  // const secretIds = [
-  //   "${CloudFrontKeyPairIdSecret}",
-  //   "${CloudFrontKeyPairPrivateKeySecret}",
-  //   "${CloudFrontKeyPairPublicKeySecret}",
-  // ];
+const parameterPathByName = (name) => `${SSMParameterStorePrefixPath}${name}`;
 
-  // TODO: fetch these from SSM parameter store. create param store entries via cfn template
-  const secretIds = [
-    "arn:aws:secretsmanager:us-east-1:529276214230:secret:CloudFrontKeyPairIdSecret-lfzwrQaKsy60-CQbj19",
-    "arn:aws:secretsmanager:us-east-1:529276214230:secret:CloudFrontKeyPairPrivateKey-ZKKK3iPjSm4m-iwRpkz",
-    "arn:aws:secretsmanager:us-east-1:529276214230:secret:CloudFrontKeyPairPublicKeyS-jdx744eRC2gl-ordhR0",
-  ];
-  const secretIdNames = [
-    "cloudFrontKeyPairIdSecret",
-    "cloudFrontKeyPairPrivateKeySecret",
-    "cloudFrontKeyPairPublicKeySecret",
-  ];
+const getConfigurationParameters = async () => {
+  const params = {
+    Names: SSMParameterStoreParameters.map((name) => parameterPathByName(name)),
+  };
+  log({ params });
+  const resp = await ssm.getParameters(params).promise();
+  log({ resp });
 
-  await asyncForEach(secretIds, async (SecretId, idx) => {
-    const resp = await secretsmanager.getSecretValue({ SecretId }).promise();
-    log({ resp });
-    cloudFrontKeyPair[secretIdNames[idx]] = resp.SecretString;
-  });
-  log({ cloudFrontKeyPair });
+  const config = {};
+  resp.Parameters.forEach(
+    (p, idx) =>
+      (config[p.Name.replace(SSMParameterStorePrefixPath, "")] = p.Value)
+  );
+
+  log({ config });
+
+  return config;
+};
+
+const getCloudFrontKeyPairPrivateKeyFromSecretsManager = async () => {
+  const resp = await secretsmanager
+    .getSecretValue({ SecretId: Config.CloudFrontKeyPairPrivateKeySecretsPath })
+    .promise();
+  log({ resp });
+  return resp.SecretString;
 };
 
 const getSignedCookies = async () => {
+  log({ Config });
   const cloudFront = new CloudFront.Signer(
-    cloudFrontKeyPair.cloudFrontKeyPairIdSecret,
-    cloudFrontKeyPair.cloudFrontKeyPairPrivateKeySecret
+    Config.CloudFrontKeyPairId,
+    Config.CloudFrontKeyPairPrivateKey
   );
 
   const policy = JSON.stringify({
     Statement: [
       {
-        Resource: `http*://${DomainName}/*`,
+        Resource: `http*://${Config.DomainName}/*`,
         Condition: {
           DateLessThan: {
             "AWS:EpochTime":
@@ -119,7 +128,7 @@ const getExpireSignedCookiesHeaders = async () => {
         key +
         `=` +
         value +
-        `; domain=${DomainName}; path=/; httpOnly=true; expires=Thu, 01 Jan 1970 00:00:00 GMT`,
+        `; domain=${Config.DomainName}; path=/; httpOnly=true; expires=Thu, 01 Jan 1970 00:00:00 GMT`,
     });
   });
   return headers;
@@ -136,7 +145,7 @@ const getLogoutResponse = async () => {
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <meta http-equiv="refresh"
-          content="0; URL=https://allthecloudbits.auth.us-east-1.amazoncognito.com/logout?response_type=token&client_id=${UserPoolClientId}&redirect_uri=https://allthecloudbits.com/login/logout.html" />
+          content="0; URL=https://allthecloudbits.auth.us-east-1.amazoncognito.com/logout?response_type=token&client_id=${Config.UserPoolClientId}&redirect_uri=https://allthecloudbits.com/login/logout.html" />
       <title>logout redirect</title>
   </head>
   
@@ -157,8 +166,8 @@ const getLogoutResponse = async () => {
 
 const getSignedCookies302RedirectResponse = async (location) => {
   // cache because expensive (time) operation
-  if (cloudFrontKeyPair === null) {
-    await loadCloudFrontKeyPairFromSecretsManager();
+  if (!Config.CloudFrontKeyPairPrivateKey) {
+    Config.CloudFrontKeyPairPrivateKey = await getCloudFrontKeyPairPrivateKeyFromSecretsManager();
   }
 
   const signedCookies = await getSignedCookies();
@@ -172,7 +181,10 @@ const getSignedCookies302RedirectResponse = async (location) => {
     respHeaders["set-cookie"].push({
       key: "Set-Cookie",
       value:
-        key + `=` + value + `; domain=${DomainName}; path=/; httpOnly=true`,
+        key +
+        `=` +
+        value +
+        `; domain=${Config.DomainName}; path=/; httpOnly=true`,
     });
   });
 
@@ -194,7 +206,7 @@ const getSignedCookies302RedirectResponse = async (location) => {
 
 const getValidateAccessTokenResult = async (token) => {
   const lambdaParams = {
-    FunctionName: DecodeVerifyJwtFunctionName,
+    FunctionName: Config.DecodeVerifyJwtFunctionName,
     Payload: JSON.stringify({ token }),
   };
 
@@ -226,6 +238,11 @@ exports.handler = async (event, context, callback) => {
 
   const request = event.Records[0].cf.request;
   const headers = request.headers;
+
+  if (!Config) {
+    Config = await getConfigurationParameters();
+    log({ Config });
+  }
 
   if (request.uri === "/login/auth" || request.uri === "/login/auth/") {
     const params = querystring.parse(request.querystring);

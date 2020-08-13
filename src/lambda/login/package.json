@@ -3,8 +3,11 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "config": {
+    "functionName": "dev-private-website-LambdaEdgeLoginFunction-1TOM6LLQZ70CI"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
     "build": "webpack"
   },
   "keywords": [],
@@ -15,6 +18,8 @@
     "jwt-decode": "^2.2.0"
   },
   "devDependencies": {
+    "glob": "^7.1.6",
+    "jest": "^26.4.0",
     "webpack": "^4.44.1",
     "webpack-cli": "^3.3.12"
   }

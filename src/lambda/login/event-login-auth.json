@@ -1,0 +1,88 @@
+{
+    "Records": [
+        {
+            "cf": {
+                "config": {
+                    "distributionDomainName": "d3lhpdjm6ngl2x.cloudfront.net",
+                    "distributionId": "EQB23CZOQJC3P",
+                    "eventType": "viewer-request",
+                    "requestId": "hmTke95fcd404hOrWzhESDRQhiTH3VOp8wuURt-hi-1xq00_29dMsw=="
+                },
+                "request": {
+                    "body": {
+                        "action": "read-only",
+                        "data": "",
+                        "encoding": "base64",
+                        "inputTruncated": false
+                    },
+                    "clientIp": "100.11.117.63",
+                    "headers": {
+                        "host": [
+                            {
+                                "key": "Host",
+                                "value": "allthecloudbits.com"
+                            }
+                        ],
+                        "user-agent": [
+                            {
+                                "key": "User-Agent",
+                                "value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36"
+                            }
+                        ],
+                        "upgrade-insecure-requests": [
+                            {
+                                "key": "upgrade-insecure-requests",
+                                "value": "1"
+                            }
+                        ],
+                        "accept": [
+                            {
+                                "key": "accept",
+                                "value": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
+                            }
+                        ],
+                        "sec-fetch-site": [
+                            {
+                                "key": "sec-fetch-site",
+                                "value": "same-origin"
+                            }
+                        ],
+                        "sec-fetch-mode": [
+                            {
+                                "key": "sec-fetch-mode",
+                                "value": "navigate"
+                            }
+                        ],
+                        "sec-fetch-dest": [
+                            {
+                                "key": "sec-fetch-dest",
+                                "value": "document"
+                            }
+                        ],
+                        "referer": [
+                            {
+                                "key": "referer",
+                                "value": "https://allthecloudbits.com/login/redirect.html"
+                            }
+                        ],
+                        "accept-encoding": [
+                            {
+                                "key": "accept-encoding",
+                                "value": "gzip, deflate, br"
+                            }
+                        ],
+                        "accept-language": [
+                            {
+                                "key": "accept-language",
+                                "value": "en-US,en;q=0.9"
+                            }
+                        ]
+                    },
+                    "method": "GET",
+                    "querystring": "access_token=eyJraWQiOiJqdzNzaUhDU2NxeWVhMnliKytkeHNNZXBnVk5JSE5Bc1pQVldKUVJPUW1BPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiIxM2VkODk4Ni1hZjc2LTQzYWYtOGU5Mi01ZDdjMzM1ODQ1MzEiLCJjb2duaXRvOmdyb3VwcyI6WyJ1cy1lYXN0LTFfUVVTTlhXc3hMX2F1dGgwIl0sInRva2VuX3VzZSI6ImFjY2VzcyIsInNjb3BlIjoib3BlbmlkIHByb2ZpbGUgZW1haWwiLCJhdXRoX3RpbWUiOjE1OTczNDk0NTUsImlzcyI6Imh0dHBzOlwvXC9jb2duaXRvLWlkcC51cy1lYXN0LTEuYW1hem9uYXdzLmNvbVwvdXMtZWFzdC0xX1FVU05YV3N4TCIsImV4cCI6MTU5NzM1MzA1NSwiaWF0IjoxNTk3MzQ5NDU1LCJ2ZXJzaW9uIjoyLCJqdGkiOiI5NWRjNjkzNS0zZjdlLTQwOWUtODZmMS1kMDVjODk2NzAxMjAiLCJjbGllbnRfaWQiOiIzYWwzcjFmYXRyMjEzbmR2cDJ1b3FjZmdpOSIsInVzZXJuYW1lIjoiYXV0aDBfYXV0aDB8NWYzMjliNGY3M2VkYzEwMDNkNWY1ZDczIn0.FYIKsVRcCseHPlfSAUvF2Xr2n8sy3wnwRtUywTXwfxSwzeK13ObLvplDS8nEED3LPFlfKJ1r_gphZKDGm8JLN3pKnRHl_LepcgedCVTaoCJ5QNf3zT3MFIOCWW9gIJ3p7FGR27V-K9QdTYqdZ_abo2AnrjvzV5jpZt7XHKVCE5ys7HfImKLFG1GUQ4UFJ8l600aaFEwoezicc5KmHFCYC1HV8z-NQKB78Kj3vNXcm4Bh6eDIDfe560YiOucOhhXbG4zEcOEULXMt_nC9HF2263pWKTPoyadgFAxiXoe5IN148I3T7qnHIQXpOPjgrSR1FjV-r3OgXRgn4q22jwR09Q&id_token=eyJraWQiOiJweElSWFRBMTBlakI3TUpBbnVLS0l1VHo1eTNCcFU4eTUxNUd3Y1lwSHg0PSIsImFsZyI6IlJTMjU2In0.eyJhdF9oYXNoIjoiM1pKd0hva1BoWXZGenJoZno3dDAtZyIsInN1YiI6IjEzZWQ4OTg2LWFmNzYtNDNhZi04ZTkyLTVkN2MzMzU4NDUzMSIsImNvZ25pdG86Z3JvdXBzIjpbInVzLWVhc3QtMV9RVVNOWFdzeExfYXV0aDAiXSwiZW1haWxfdmVyaWZpZWQiOmZhbHNlLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9RVVNOWFdzeEwiLCJjb2duaXRvOnVzZXJuYW1lIjoiYXV0aDBfYXV0aDB8NWYzMjliNGY3M2VkYzEwMDNkNWY1ZDczIiwibm9uY2UiOiJ6R0R4bU1nVE5WVktkTFBfaWxFZGFNQThaMndyWVN3TnA1c1I1el9OdGlvamIzV2FUY2p3N04xSmM2eWZURk5hNXJjbWF6NGdaUmhzdXVkNUpCdWRpWk52Y2Q4c0M2TVR0cDFpREVFV05rbEdSZU1ucVIteWhwSEVaZ1JXWjRabVcweGVZckszVmtjUDc2WFphbm9SbTI4M3VWUWEtQVJCaERHZG9IS01OWkkiLCJhdWQiOiIzYWwzcjFmYXRyMjEzbmR2cDJ1b3FjZmdpOSIsImlkZW50aXRpZXMiOlt7InVzZXJJZCI6ImF1dGgwfDVmMzI5YjRmNzNlZGMxMDAzZDVmNWQ3MyIsInByb3ZpZGVyTmFtZSI6ImF1dGgwIiwicHJvdmlkZXJUeXBlIjoiU0FNTCIsImlzc3VlciI6InVybjpzdmMuYXV0aDAuY29tIiwicHJpbWFyeSI6InRydWUiLCJkYXRlQ3JlYXRlZCI6IjE1OTcxNTg3NTU1ODMifV0sInRva2VuX3VzZSI6ImlkIiwiYXV0aF90aW1lIjoxNTk3MzQ5NDU1LCJleHAiOjE1OTczNTMwNTUsImlhdCI6MTU5NzM0OTQ1NSwiZW1haWwiOiJ1c2VyMDFAZXhhbXBsZS5jb20ifQ.GYrv9jBCr7sQtaHIndIwbFs1ramd9r1sK79fNugq_eWt8p9DqQscUNC2cXXMTL-gcDT-RsaXlg7bokod-fU5sGd_QK46qhaZ9GWSLGBewELILu6SJM9yLnIxAMR8QEfhdOk7gpR3U9JIF7lMEzlVQYfxZZ0No8xlCdak2xbsw-H50VJyRIrJoKwsFRAR4H_NS0dhWVLmxcb9eEGjuKwi90dY3XLMqU6MDPOhjQOvBprn4vaAavHyss14_tMb10eZpcl0-oQ816GlL1DWuwztQo0OrLvpTWI9i9VCWpHCqce60j3SqFcKNTZ0tkT5o8K4h5oudAO_th1ZsHANDWoQOQ&token_type=Bearer&expires_in=3600",
+                    "uri": "/login/auth/"
+                }
+            }
+        }
+    ]
+}
