@@ -18,6 +18,7 @@ This infrastructure provisioning and deployment pipeline performs an atomic depl
 * [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html) - [configured](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html) with AWS credentials
 * [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
 * [jq](https://stedolan.github.io/jq/)
+* [Docker](https://www.docker.com/products/docker-desktop)
 
 ---
 
