@@ -1,11 +1,11 @@
 // basic auth
 "use strict";
 
-const AWS = require("aws-sdk");
-const secretsmanager = new AWS.SecretsManager();
+const SecretsManager = require("aws-sdk/clients/secretsmanager");
+const secretsmanager = new SecretsManager();
 const fs = require("fs");
 
-const log = (o) => console.log(JSON.stringify(o));
+const log = (o) => console.log(JSON.stringify(o, null, 2));
 
 const UsersSecret = `arn:aws:secretsmanager:us-east-1:529276214230:secret:UsersSecret-CTvtLRJcyv5c-HKzBxa`;
 let userAuthStrings = null;

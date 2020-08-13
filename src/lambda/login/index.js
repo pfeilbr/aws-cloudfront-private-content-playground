@@ -1,17 +1,29 @@
 // login handler
 "use strict";
 
-const AWS = require("aws-sdk");
-const secretsmanager = new AWS.SecretsManager();
-const lambda = new AWS.Lambda();
+const SecretsManager = require("aws-sdk/clients/secretsmanager");
+const secretsmanager = new SecretsManager();
+
+const Lambda = require("aws-sdk/clients/lambda");
+const lambda = new Lambda();
+
+const CloudFront = require("aws-sdk/clients/cloudfront");
 const fs = require("fs");
 const querystring = require("querystring");
-const log = (o) => console.log(JSON.stringify(o));
+const jwtDecode = require("jwt-decode");
+const log = (o) => console.log(JSON.stringify(o, null, 2));
 
 // TODO: pull this from parameter store
 const DomainName = "allthecloudbits.com";
+const UserPoolClientId = "3al3r1fatr213ndvp2uoqcfgi9";
 const DecodeVerifyJwtFunctionName =
   "dev-private-website-DecodeVerifyJwtFunction-1XBZMCJD1VEW2";
+
+const cloudFrontSignedCookieHeaderKeys = [
+  "CloudFront-Key-Pair-Id",
+  "CloudFront-Policy",
+  "CloudFront-Signature",
+];
 
 // cache expensive operation of loading users from secrets manager
 let cloudFrontKeyPair = null;
@@ -51,7 +63,7 @@ const loadCloudFrontKeyPairFromSecretsManager = async () => {
 };
 
 const getSignedCookies = async () => {
-  const cloudFront = new AWS.CloudFront.Signer(
+  const cloudFront = new CloudFront.Signer(
     cloudFrontKeyPair.cloudFrontKeyPairIdSecret,
     cloudFrontKeyPair.cloudFrontKeyPairPrivateKeySecret
   );
@@ -95,6 +107,54 @@ const forbiddenResponse = () => ({
   headers: {},
 });
 
+const getExpireSignedCookiesHeaders = async () => {
+  const headers = {};
+  headers["set-cookie"] = [];
+
+  cloudFrontSignedCookieHeaderKeys.forEach((key) => {
+    const value = "deleted";
+    headers["set-cookie"].push({
+      key: "Set-Cookie",
+      value:
+        key +
+        `=` +
+        value +
+        `; domain=${DomainName}; path=/; httpOnly=true; expires=Thu, 01 Jan 1970 00:00:00 GMT`,
+    });
+  });
+  return headers;
+};
+
+const getLogoutResponse = async () => {
+  const headers = await getExpireSignedCookiesHeaders();
+
+  const body = `
+  <!DOCTYPE html>
+  <html lang="en">
+  
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta http-equiv="refresh"
+          content="0; URL=https://allthecloudbits.auth.us-east-1.amazoncognito.com/logout?response_type=token&client_id=${UserPoolClientId}&redirect_uri=https://allthecloudbits.com/login/logout.html" />
+      <title>logout redirect</title>
+  </head>
+  
+  <body>
+  </body>
+  
+  </html>  
+  `;
+
+  const response = {
+    status: "200",
+    statusDescription: "OK",
+    headers,
+    body,
+  };
+  return response;
+};
+
 const getSignedCookies302RedirectResponse = async (location) => {
   // cache because expensive (time) operation
   if (cloudFrontKeyPair === null) {
@@ -106,11 +166,7 @@ const getSignedCookies302RedirectResponse = async (location) => {
 
   const respHeaders = {};
   respHeaders["set-cookie"] = [];
-  const cloudFrontSignedCookieHeaderKeys = [
-    "CloudFront-Key-Pair-Id",
-    "CloudFront-Policy",
-    "CloudFront-Signature",
-  ];
+
   cloudFrontSignedCookieHeaderKeys.forEach((key) => {
     const value = signedCookies[key];
     respHeaders["set-cookie"].push({
@@ -175,14 +231,81 @@ exports.handler = async (event, context, callback) => {
     const params = querystring.parse(request.querystring);
     log({ params });
 
-    const token = params["access_token"];
-    const decodeVerifyJwtResponse = await getValidateAccessTokenResult(token);
+    const accessToken = params["access_token"];
+    const decodeVerifyJwtResponse = await getValidateAccessTokenResult(
+      accessToken
+    );
     log({ decodeVerifyJwtResponse });
+
+    // e.g. VALID decodeVerifyJwtResponse
+    // {
+    //   "userName": "",
+    //   "clientId": "",
+    //   "error": {
+    //     "name": "TokenExpiredError",
+    //     "message": "jwt expired",
+    //     "expiredAt": "2020-08-12T18:16:39.000Z"
+    //   },
+    //   "isValid": false
+    // }
+
+    // e.g. INVALID decodeVerifyJwtResponse
+    // {
+    //   "userName": "",
+    //   "clientId": "",
+    //   "error": {
+    //     "name": "TokenExpiredError",
+    //     "message": "jwt expired",
+    //     "expiredAt": "2020-08-12T18:16:39.000Z"
+    //   },
+    //   "isValid": false
+    // }
+
+    const idToken = params["id_token"];
+    const idTokenDecodeResult = jwtDecode(idToken);
+    log({ idTokenDecodeResult });
+
+    // e.g. idTokenDecodeResult
+    //   {
+    //     "at_hash": "3WU5XivsKWQ18XvCNt3gig",
+    //     "sub": "13ed8986-af76-43af-8e92-5d7c33584531",
+    //     "cognito:groups": [
+    //       "us-east-1_QUSNXWsxL_auth0"
+    //     ],
+    //     "email_verified": false,
+    //     "iss": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_QUSNXWsxL",
+    //     "cognito:username": "auth0_auth0|5f329b4f73edc1003d5f5d73",
+    //     "nonce": "xtpMPSXzapqnsqapybMROVROHImj6wWWtGFMpZT1nMebAI5aL3SSsnPbAIe3_wFUkimeVNbR-JheYn_bqFSJIDYHb0FP55b5r2c7Cy1m1jnpIFXgkXxW4aFQ2yiU9ODkfvYFmzK03m6uKRjRG2DZ3NAOXnZi_qN-bQ1Hh3w1Lmk",
+    //     "aud": "3al3r1fatr213ndvp2uoqcfgi9",
+    //     "identities": [
+    //       {
+    //         "userId": "auth0|5f329b4f73edc1003d5f5d73",
+    //         "providerName": "auth0",
+    //         "providerType": "SAML",
+    //         "issuer": "urn:svc.auth0.com",
+    //         "primary": "true",
+    //         "dateCreated": "1597158755583"
+    //       }
+    //     ],
+    //     "token_use": "id",
+    //     "auth_time": 1597252599,
+    //     "exp": 1597256199,
+    //     "iat": 1597252599,
+    //     "email": "user01@example.com"
+    //   }
+    // }
+
     let response = forbiddenResponse();
     if (decodeVerifyJwtResponse && decodeVerifyJwtResponse.isValid) {
       response = getSignedCookies302RedirectResponse("/");
     }
 
+    log({ response });
+    return response;
+  }
+
+  if (request.uri === "/login/logout" || request.uri === "/login/logout/") {
+    const response = await getLogoutResponse();
     log({ response });
     return response;
   } else {

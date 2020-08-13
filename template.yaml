@@ -433,7 +433,7 @@ Resources:
     Properties:
       Runtime: nodejs12.x
       Handler: index.handler
-      CodeUri: ./src/lambda/login
+      CodeUri: ./src/lambda/login/dist
       Timeout: 5
       AutoPublishAlias: live
       Policies:      
@@ -465,7 +465,8 @@ Resources:
               Service: 
                 - "lambda.amazonaws.com"
                 - "edgelambda.amazonaws.com"                
-
+    # Metadata:
+    #   BuildMethod: makefile
 
 
   # LambdaEdgeLoginFunctionRole:
@@ -511,9 +512,26 @@ Resources:
       Role: !GetAtt LambdaEdgeAuthFunctionRole.Arn
       Runtime: nodejs12.x
       Handler: index.handler
-      CodeUri: ./src/lambda/basic-auth
+      CodeUri: ./src/lambda/basic-auth/dist
       Timeout: 5
       AutoPublishAlias: live
+    # Metadata:
+    #   BuildMethod: makefile
+
+  DecodeVerifyJwtFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: 
+      Runtime: nodejs12.x
+      Handler: index.handler
+      CodeUri: ./src/lambda/decode-verify-jwt/dist
+      Timeout: 5
+      AutoPublishAlias: live
+      Environment:
+        Variables:
+          COGNITO_POOL_ID: !Ref UserPool
+    # Metadata:
+    #   BuildMethod: makefile    
 
   LambdaEdgeAuthFunctionRole:
     Type: "AWS::IAM::Role"
@@ -543,18 +561,8 @@ Resources:
                   - "lambda.amazonaws.com"
                   - "edgelambda.amazonaws.com"
 
-  DecodeVerifyJwtFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: 
-      Runtime: nodejs12.x
-      Handler: index.handler
-      CodeUri: ./src/lambda/decode-verify-jwt
-      Timeout: 5
-      AutoPublishAlias: live
-      Environment:
-        Variables:
-          COGNITO_POOL_ID: !Ref UserPool
+
+
           
 
   CloudFrontWebACL:
@@ -823,6 +831,7 @@ Resources:
         - !Sub "https://${DomainName}${LoginPageRelativePath}/"
         - !Sub "https://${DomainName}${LoginPageRelativePath}/redirect.html"
         - !Sub "https://${DomainName}${LoginPageRelativePath}/auth/"
+        - !Sub "https://${DomainName}${LoginPageRelativePath}/logout.html"
 
       LogoutURLs:
         - !Sub "https://${DomainName}/logout/"
@@ -832,6 +841,7 @@ Resources:
       AllowedOAuthScopes:
         - email
         - openid
+        - profile
       AllowedOAuthFlowsUserPoolClient: true
 
   UserPoolDomain:

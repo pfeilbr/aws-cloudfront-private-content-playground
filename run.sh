@@ -24,8 +24,8 @@ read -r -d '' TAGS <<- EOM
     Application=tagApplication \
     Consumer=tagConsumer
 EOM
-
-CONTENT_DIRECTORY_PATH="./public"
+FRONTEND_SOURCE_PATH="./frontend"
+CONTENT_DIRECTORY_PATH="${FRONTEND_SOURCE_PATH}/build"
 BUILD_SOURCEBRANCHNAME="${BUILD_SOURCEBRANCHNAME:-master}"
 #BUILD_SOURCEBRANCHNAME="develop"
 #BUILD_SOURCEVERSION=$(LC_CTYPE=C tr -dc A-Za-z0-9 < /dev/urandom | fold -w ${1:-32} | head -n 1)
@@ -36,9 +36,11 @@ display_usage() {
     echo -e "USAGE"
     echo -e "\t$ run [COMMAND]\n"
     echo -e "COMMANDS"
+    echo -e "\trun build-lambdas"
     echo -e "\trun deploy-infrastructure"
     echo -e "\trun describe-stack-outputs"
     echo -e "\trun delete-infrastructure"
+    echo -e "\trun build-content"
     echo -e "\trun publish-content staging|prod [--blue-green-publish] [--apply-routing-rules] [--invalidate-cloudfront-cache]"
     echo -e "\trun tag-and-trigger-publish"
     echo -e "\trun open-website staging|prod"
@@ -129,7 +131,20 @@ bootstrap() {
         --output json > "${stack_outputs_file_path}"    
 }
 
+build-lambdas() {
+    lambdas_dir="src/lambda"
+    pushd $lambdas_dir
+    for dir_name in $(ls)
+    do
+        (pushd "$dir_name" && npm run build && popd);
+    done
+    popd
+}
+
 deploy-infrastructure() {
+
+    build-lambdas ""
+
     sam package \
         --template-file "${TEMPLATE}" \
         --s3-bucket "${S3_BUCKET}" \
@@ -167,7 +182,6 @@ describe-stack-outputs() {
 }
 
 delete-infrastructure() {
-
     website_bucket_name=$(aws cloudformation describe-stacks --region "${REGION}" --stack-name "${STACK_NAME}" --query "Stacks[0].Outputs[?OutputKey=='WebsiteBucketName'].OutputValue" --output text)
     website_staging_bucket_name=$(aws cloudformation describe-stacks --region "${REGION}" --stack-name "${STACK_NAME}" --query "Stacks[0].Outputs[?OutputKey=='StagingWebsiteBucketName'].OutputValue" --output text)
     cloudfront_logs_bucket_name=$(aws cloudformation describe-stacks --region "${REGION}" --stack-name "${STACK_NAME}" --query "Stacks[0].Outputs[?OutputKey=='CloudFrontLogsBucketName'].OutputValue" --output text)
@@ -183,9 +197,7 @@ delete-infrastructure() {
     aws cloudformation wait stack-delete-complete \
         --region "${REGION}" \
         --stack-name "${STACK_NAME}"
-
 }
-
 
 sync_s3() {
   content_directory_path=${1}
@@ -268,18 +280,18 @@ invalidate_cache() {
 }
 
 deploy_to_git_tag() {
-  content_directory_path=${1}
-  tag_name=${2}
-  cloudfront_distribution_id=${3}
-  bucket_name=${4}
+    content_directory_path=${1}
+    tag_name=${2}
+    cloudfront_distribution_id=${3}
+    bucket_name=${4}
 
-  echo -e "Deploying ${tag_name}"
-  sync_s3 ${content_directory_path} ${bucket_name} ${tag_name}
+    echo -e "Deploying ${tag_name}"
+    sync_s3 ${content_directory_path} ${bucket_name} ${tag_name}
 
     if [ -n "$APPLY_ROUTING_RULES" ]; then
         create_routing_rules "${bucket_name}" "${tag_name}"
     fi
-  
+
     if [ -n "$BLUE_GREEN_PUBLISH" ]; then
         change_origin_path ${tag_name} ${cloudfront_distribution_id}
         aws cloudfront wait distribution-deployed --id ${cloudfront_distribution_id}
@@ -306,6 +318,12 @@ update_content_with_version() {
     # replace_in_file "${file_path}" "BUILD_SOURCEVERSION" "${BUILD_SOURCEVERSION}"
     # replace_in_file "${file_path}" "BUILD_SOURCEVERSIONMESSAGE" "${BUILD_SOURCEVERSIONMESSAGE}"
     cat ${file_path}
+}
+
+build-content() {
+    pushd "${FRONTEND_SOURCE_PATH}"
+    npm run build
+    popd
 }
 
 _publish-content() {
@@ -352,6 +370,8 @@ _publish-content() {
 }
 
 publish-content() {
+    build-content "$@"
+    
     environment="$2"
 
     if [ "${environment}" = "staging" ]; then
@@ -411,12 +431,18 @@ case $CMD in
     bootstrap)
         bootstrap
     ;;
+    build-lambdas)
+        build-lambdas "$@"
+    ;;
     deploy-infrastructure)
         deploy-infrastructure
     ;;
     describe-stack-outputs)
         describe-stack-outputs "$@"
     ;;
+    build-content)
+        build-content "$@"
+    ;;    
     publish-content)
         publish-content "$@"
     ;;

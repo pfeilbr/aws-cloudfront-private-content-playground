@@ -99,6 +99,9 @@ This infrastructure provisioning and deployment pipeline performs an atomic depl
 
 ## TODO
 
+* `create-react-app`
+* add logout link
+
 * cognito federated sso to auth0 saml2. see [Set up Auth0 as a SAML Identity Provider with an Amazon Cognito User Pool](https://aws.amazon.com/premiumsupport/knowledge-center/auth0-saml-cognito-user-pool/)
 * configure CloudFront Error pages to redirect to cognito login URL
 * move `LambdaEdgeLoginFunction` out of template to individual directory and use SAM to deploy
@@ -178,7 +181,36 @@ auth0 test user: user01@example.com / password01
 
 https://allthecloudbits.auth.us-east-1.amazoncognito.com/saml2/idpresponse
 
+# cognito login url
 https://allthecloudbits.auth.us-east-1.amazoncognito.com/login?response_type=token&client_id=3al3r1fatr213ndvp2uoqcfgi9&redirect_uri=https://allthecloudbits.com/login/redirect/
+
+# cognito userinfo url
+https://allthecloudbits.auth.us-east-1.amazoncognito.com/oauth2/userInfo
+
+Authorization: Bearer <access_token>
+
+ACCESS_TOKEN='eyJraWQiOiJqdzNzaUhDU2NxeWVhMnliKytkeHNNZXBnVk5JSE5Bc1pQVldKUVJPUW1BPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiIxM2VkODk4Ni1hZjc2LTQzYWYtOGU5Mi01ZDdjMzM1ODQ1MzEiLCJjb2duaXRvOmdyb3VwcyI6WyJ1cy1lYXN0LTFfUVVTTlhXc3hMX2F1dGgwIl0sInRva2VuX3VzZSI6ImFjY2VzcyIsInNjb3BlIjoib3BlbmlkIHByb2ZpbGUgZW1haWwiLCJhdXRoX3RpbWUiOjE1OTczMjM5ODgsImlzcyI6Imh0dHBzOlwvXC9jb2duaXRvLWlkcC51cy1lYXN0LTEuYW1hem9uYXdzLmNvbVwvdXMtZWFzdC0xX1FVU05YV3N4TCIsImV4cCI6MTU5NzMyNzU4OCwiaWF0IjoxNTk3MzIzOTg4LCJ2ZXJzaW9uIjoyLCJqdGkiOiIwZTkzZWFiMi02YzIyLTQyMTctYWNmNC0xNGMzOGQ1NWY0NGYiLCJjbGllbnRfaWQiOiIzYWwzcjFmYXRyMjEzbmR2cDJ1b3FjZmdpOSIsInVzZXJuYW1lIjoiYXV0aDBfYXV0aDB8NWYzMjliNGY3M2VkYzEwMDNkNWY1ZDczIn0.X8cZNbyz8oF46MaO60gD9PDXuart0MvIqRNa7IjvbO5DuQM0uMMs6Xfb1ftcEk6iADjz-i8sEtzkd0AQXr-LdVLRLWTl7TQXICzppo2dOgRlK4HIY0RHktuDrCpciWaGmjFz35wKu0omqmzVSNFNv8Bdgv1peCeOvvQDnxeP4ewaHvpUVZbd3todkoytMoQSKBQ3DwepbHM79t_jluiamyPWzJtcHcMZ0Fdl5RQIg8_fsDq1ouuMaYfUESqpwyw0hQv39xL2VSU-RzfoS3oeqeHV85W1CMwc21t_mhTg1gYmYr7z2dTBFbYka60ip50ImEQgTrzne_hTFfiZwOD4QA'
+
+curl -H "Authorization: Bearer ${ACCESS_TOKEN}" https://allthecloudbits.auth.us-east-1.amazoncognito.com/oauth2/userInfo
+
+example output
+```json
+{
+    "sub": "13ed8986-af76-43af-8e92-5d7c33584531",
+    "identities": "[{\"userId\":\"auth0|5f329b4f73edc1003d5f5d73\",\"providerName\":\"auth0\",\"providerType\":\"SAML\",\"issuer\":\"urn:svc.auth0.com\",\"primary\":true,\"dateCreated\":1597158755583}]",
+    "email_verified": "false",
+    "email": "user01@example.com",
+    "username": "auth0_auth0|5f329b4f73edc1003d5f5d73"
+}
+```
+
+# cognito logout url
+https://allthecloudbits.auth.us-east-1.amazoncognito.com/logout?response_type=token&client_id=3al3r1fatr213ndvp2uoqcfgi9&redirect_uri=https://allthecloudbits.com/login/logout.html
+
+or
+
+https://allthecloudbits.auth.us-east-1.amazoncognito.com/logout?response_type=token&client_id=3al3r1fatr213ndvp2uoqcfgi9&redirect_uri=https://allthecloudbits.com/login/logout.html
+
 
 https://allthecloudbits.com/login/
 
