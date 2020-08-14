@@ -372,6 +372,7 @@ PHNhbWxwOlJlc3BvbnNlIHhtbG5zOnNhbWxwPSJ1cm46b2FzaXM6bmFtZXM6dGM6U0FNTDoyLjA6cHJv
 ## TODO
 
 * store id_token and refresh_token in local storage.  delete on logout
+* add standard set of cw alarms for 4xx and 5xx thresholds.  make thresholds configurable via cfn params.  create cw dashboard from these.
 * add architecture diagram to README.md
 * remove `IncludeBody: true` from template.yaml
 * package as Serverless Application Repository 
