@@ -99,112 +99,28 @@ This infrastructure provisioning and deployment pipeline performs an atomic depl
     ![](https://www.evernote.com/l/AAEgpBPAJIZEobg-W98KcjGBQ_4zI1t-t1wB/image.png)
     ![](https://www.evernote.com/l/AAHkehP3TIFFTI-I8rh3nuiA13I7ze6shlAB/image.png)
 
----
-
-## TODO
-
-* add architecture diagram to README.md
-* remove `IncludeBody: true` from template.yaml
-* package as Serverless Application Repository 
-* package as [AWS Service Catalog](https://aws.amazon.com/servicecatalog/) product using CloudFormation.  See [AWS CloudFormation support for AWS Service Catalog products | AWS Management & Governance Blog](https://aws.amazon.com/blogs/mt/how-to-launch-secure-and-governed-aws-resources-with-aws-cloudformation-and-aws-service-catalog/)
-
-## Completed
-
-* ~~cognito federated sso to auth0 saml2. see [Set up Auth0 as a SAML Identity Provider with an Amazon Cognito User Pool](https://aws.amazon.com/premiumsupport/knowledge-center/auth0-saml-cognito-user-pool/)~~
-* ~~configure CloudFront Error pages to redirect to cognito login URL~~
-* ~~move `LambdaEdgeLoginFunction` out of template to individual directory and use SAM to deploy~~
-* ~~DecodeVerifyJwtFunction is split into its own lambda due to lambda@edge code size constraints~~
-* ~~customize cognito login hosted ui.  remove signup, etc.~~
-* ~~`create-react-app`~~
-* ~~add "logout" link that removes cloudfront signed cookies.  must do from server-side as client-side javascript can't access the cookies.  see [Correct way to delete cookies server-side](https://stackoverflow.com/questions/5285940/correct-way-to-delete-cookies-server-side#answer-53573622)~~
-* ~~`src/lambda/login/index.js` - get `${DomainName}`, `DecodeVerifyJwtFunctionName`, `UserPoolClientId`, and CloudFront Key Pair Secrets paths from param store~~
-* ~~remove unused secrets manager secrets~~
-
 
 ---
 
-## Resources
+## Detail Examples
 
-**Articles**
+### cognito login url
 
-* [Node.js — Serve Private Content using AWS CloudFront](https://gosink.in/node-js-serve-private-content-using-aws-cloudfront/)
-* [Serving Private Content Using Amazon CloudFront & AWS Lambda@Edge](https://aws.amazon.com/blogs/networking-and-content-delivery/serving-private-content-using-amazon-cloudfront-aws-lambdaedge/)
-* [Authorization@Edge using cookies: Protect your Amazon CloudFront content from being downloaded by unauthenticated users](https://aws.amazon.com/blogs/networking-and-content-delivery/authorizationedge-using-cookies-protect-your-amazon-cloudfront-content-from-being-downloaded-by-unauthenticated-users/)
-* [Authorization@Edge – How to Use Lambda@Edge and JSON Web Tokens to Enhance Web Application Security](https://aws.amazon.com/blogs/networking-and-content-delivery/authorizationedge-how-to-use-lambdaedge-and-json-web-tokens-to-enhance-web-application-security/)
-* [Private static websites on S3 cheat sheet](https://stuartsandine.com/private-static-websites-on-s3/)
-* [Can I host a static website on a private Amazon S3 bucket and then serve the website using CloudFront?](https://aws.amazon.com/premiumsupport/knowledge-center/s3-cloudfront-website-access/)
-* [r/AWS | Access S3 static website from Intranet](https://www.reddit.com/r/aws/comments/bt6dlv/access_s3_static_website_from_intranet/)
-* [How to use AWS.CloudFront.Signer in Lambda function](https://stackoverflow.com/questions/38305980/how-to-use-aws-cloudfront-signer-in-lambda-function)
-* [How to Monitor Amazon CloudFront with CloudWatch](https://www.bluematador.com/blog/how-to-monitor-amazon-cloudfront-with-cloudwatch)
+<https://allthecloudbits.auth.us-east-1.amazoncognito.com/login?response_type=token&client_id=3al3r1fatr213ndvp2uoqcfgi9&redirect_uri=https://allthecloudbits.com/login/redirect/>
 
+### cognito userinfo url
 
-**Documentation**
+<https://allthecloudbits.auth.us-east-1.amazoncognito.com/oauth2/userInfo>
 
-* [AWS | Documentation | CloudFront | Overview of Serving Private Content](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-overview.html)
-* [CloudFront | Using Signed Cookies](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-signed-cookies.html)
-* [Specifying the AWS Accounts That Can Create Signed URLs and Signed Cookies (Trusted Signers) - Amazon CloudFront](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-trusted-signers.html)
-* [Class: AWS.CloudFront.Signer | AWS SDK for JavaScript](https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/CloudFront/Signer.html) - support for generating signed URLs and Cookies in node/js/ts
-
-**Code**
-
-* [aws-samples/cloudfront-authorization-at-edge](https://github.com/aws-samples/cloudfront-authorization-at-edge)
-* [CloudFront Signed Cookies Keeping Session State for API Gateway Access](https://stackoverflow.com/questions/45250493/cloudfront-signed-cookies-keeping-session-state-for-api-gateway-access)
-* [h-arora/aws-cloudfront-cookie-signer](https://github.com/h-arora/aws-cloudfront-cookie-signer)
-* [pfeilbr/azure-pipelines-playground](https://github.com/pfeilbr/azure-pipelines-playground) - specifically CloudFormation template @ [azure-pipelines-playground/cfn-templates/resources.yaml](https://github.com/pfeilbr/azure-pipelines-playground/blob/master/cfn-templates/resources.yaml)
-* [pfeilbr/aws-cognito-playground](https://github.com/pfeilbr/aws-cognito-playground)
-* [pfeilbr/cognito-federated-to-salesforce-and-s3-presigned-url-playground](https://github.com/pfeilbr/cognito-federated-to-salesforce-and-s3-presigned-url-playground)
-
-
----
-
-## Scratch
+Example Usage
 
 ```sh
-export REGION="us-east-1"
-export STACK_NAME="dev-private-website"
-export BUILD_SOURCEBRANCHNAME="master"
-#export BUILD_SOURCEBRANCHNAME="develop"
-#export BUILD_SOURCEVERSION=$(LC_CTYPE=C tr -dc A-Za-z0-9 < /dev/urandom | fold -w ${1:-32} | head -n 1)
-export BUILD_SOURCEVERSION="v0.0.1"
-./scripts/publish.sh
-
-
-sam local invoke -e src/lambda/login/event.json "LambdaEdgeLoginFunction"
-sam local invoke -e src/lambda/decode-verify-jwt/event.json "DecodeVerifyJwtFunction"
-sam local invoke -e src/lambda/basic-auth/event.json "LambdaEdgeAuthFunction"
-
-```
-
-```js
-const responseRedirect = (location) => ({
-    status: "302",
-    statusDescription: "Found",
-    headers: {
-        location: [{
-            key: "Location",
-            value: location,
-        }],
-    },
-})
-```
-
-auth0 test user: user01@example.com / password01
-
-https://allthecloudbits.auth.us-east-1.amazoncognito.com/saml2/idpresponse
-
-# cognito login url
-https://allthecloudbits.auth.us-east-1.amazoncognito.com/login?response_type=token&client_id=3al3r1fatr213ndvp2uoqcfgi9&redirect_uri=https://allthecloudbits.com/login/redirect/
-
-# cognito userinfo url
-https://allthecloudbits.auth.us-east-1.amazoncognito.com/oauth2/userInfo
-
-Authorization: Bearer <access_token>
-
-ACCESS_TOKEN='eyJraWQiOiJqdzNzaUhDU2NxeWVhMnliKytkeHNNZXBnVk5JSE5Bc1pQVldKUVJPUW1BPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiIxM2VkODk4Ni1hZjc2LTQzYWYtOGU5Mi01ZDdjMzM1ODQ1MzEiLCJjb2duaXRvOmdyb3VwcyI6WyJ1cy1lYXN0LTFfUVVTTlhXc3hMX2F1dGgwIl0sInRva2VuX3VzZSI6ImFjY2VzcyIsInNjb3BlIjoib3BlbmlkIHByb2ZpbGUgZW1haWwiLCJhdXRoX3RpbWUiOjE1OTczMjM5ODgsImlzcyI6Imh0dHBzOlwvXC9jb2duaXRvLWlkcC51cy1lYXN0LTEuYW1hem9uYXdzLmNvbVwvdXMtZWFzdC0xX1FVU05YV3N4TCIsImV4cCI6MTU5NzMyNzU4OCwiaWF0IjoxNTk3MzIzOTg4LCJ2ZXJzaW9uIjoyLCJqdGkiOiIwZTkzZWFiMi02YzIyLTQyMTctYWNmNC0xNGMzOGQ1NWY0NGYiLCJjbGllbnRfaWQiOiIzYWwzcjFmYXRyMjEzbmR2cDJ1b3FjZmdpOSIsInVzZXJuYW1lIjoiYXV0aDBfYXV0aDB8NWYzMjliNGY3M2VkYzEwMDNkNWY1ZDczIn0.X8cZNbyz8oF46MaO60gD9PDXuart0MvIqRNa7IjvbO5DuQM0uMMs6Xfb1ftcEk6iADjz-i8sEtzkd0AQXr-LdVLRLWTl7TQXICzppo2dOgRlK4HIY0RHktuDrCpciWaGmjFz35wKu0omqmzVSNFNv8Bdgv1peCeOvvQDnxeP4ewaHvpUVZbd3todkoytMoQSKBQ3DwepbHM79t_jluiamyPWzJtcHcMZ0Fdl5RQIg8_fsDq1ouuMaYfUESqpwyw0hQv39xL2VSU-RzfoS3oeqeHV85W1CMwc21t_mhTg1gYmYr7z2dTBFbYka60ip50ImEQgTrzne_hTFfiZwOD4QA'
+export ACCESS_TOKEN='eyJraWQiOiJqdzNzaUhDU2NxeWVhMnliKytkeHNNZXBnVk5JSE5Bc1pQVldKUVJPUW1BPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiIxM2VkODk4Ni1hZjc2LTQzYWYtOGU5Mi01ZDdjMzM1ODQ1MzEiLCJjb2duaXRvOmdyb3VwcyI6WyJ1cy1lYXN0LTFfUVVTTlhXc3hMX2F1dGgwIl0sInRva2VuX3VzZSI6ImFjY2VzcyIsInNjb3BlIjoib3BlbmlkIHByb2ZpbGUgZW1haWwiLCJhdXRoX3RpbWUiOjE1OTczMjM5ODgsImlzcyI6Imh0dHBzOlwvXC9jb2duaXRvLWlkcC51cy1lYXN0LTEuYW1hem9uYXdzLmNvbVwvdXMtZWFzdC0xX1FVU05YV3N4TCIsImV4cCI6MTU5NzMyNzU4OCwiaWF0IjoxNTk3MzIzOTg4LCJ2ZXJzaW9uIjoyLCJqdGkiOiIwZTkzZWFiMi02YzIyLTQyMTctYWNmNC0xNGMzOGQ1NWY0NGYiLCJjbGllbnRfaWQiOiIzYWwzcjFmYXRyMjEzbmR2cDJ1b3FjZmdpOSIsInVzZXJuYW1lIjoiYXV0aDBfYXV0aDB8NWYzMjliNGY3M2VkYzEwMDNkNWY1ZDczIn0.X8cZNbyz8oF46MaO60gD9PDXuart0MvIqRNa7IjvbO5DuQM0uMMs6Xfb1ftcEk6iADjz-i8sEtzkd0AQXr-LdVLRLWTl7TQXICzppo2dOgRlK4HIY0RHktuDrCpciWaGmjFz35wKu0omqmzVSNFNv8Bdgv1peCeOvvQDnxeP4ewaHvpUVZbd3todkoytMoQSKBQ3DwepbHM79t_jluiamyPWzJtcHcMZ0Fdl5RQIg8_fsDq1ouuMaYfUESqpwyw0hQv39xL2VSU-RzfoS3oeqeHV85W1CMwc21t_mhTg1gYmYr7z2dTBFbYka60ip50ImEQgTrzne_hTFfiZwOD4QA'
 
 curl -H "Authorization: Bearer ${ACCESS_TOKEN}" https://allthecloudbits.auth.us-east-1.amazoncognito.com/oauth2/userInfo
+```
 
-example output
+output
 ```json
 {
     "sub": "13ed8986-af76-43af-8e92-5d7c33584531",
@@ -215,25 +131,13 @@ example output
 }
 ```
 
-# cognito logout url
-https://allthecloudbits.auth.us-east-1.amazoncognito.com/logout?response_type=token&client_id=3al3r1fatr213ndvp2uoqcfgi9&redirect_uri=https://allthecloudbits.com/login/logout.html
+### cognito logout url
 
-or
+<https://allthecloudbits.auth.us-east-1.amazoncognito.com/logout?response_type=token&client_id=3al3r1fatr213ndvp2uoqcfgi9&redirect_uri=https://allthecloudbits.com/login/logout.html>
 
-https://allthecloudbits.auth.us-east-1.amazoncognito.com/logout?response_type=token&client_id=3al3r1fatr213ndvp2uoqcfgi9&redirect_uri=https://allthecloudbits.com/login/logout.html
+---
 
-
-https://allthecloudbits.com/login/
-
-```json
-{
-    "audience":  "urn:amazon:cognito:sp:us-east-1_QUSNXWsxL",
-    "mappings": {
-     "email":       "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"
-   },
-   "nameIdentifierFormat": "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent"
-}
-```
+### Auth0 SAML Configuration
 
 ```json
 {
@@ -274,13 +178,15 @@ https://allthecloudbits.com/login/
 }
 ```
 
-tokens
+---
+
+### tokens provided to application
 
 ```sh
 https://allthecloudbits.com/login/#access_token=eyJraWQiOiJqdzNzaUhDU2NxeWVhMnliKytkeHNNZXBnVk5JSE5Bc1pQVldKUVJPUW1BPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiIxM2VkODk4Ni1hZjc2LTQzYWYtOGU5Mi01ZDdjMzM1ODQ1MzEiLCJjb2duaXRvOmdyb3VwcyI6WyJ1cy1lYXN0LTFfUVVTTlhXc3hMX2F1dGgwIl0sInRva2VuX3VzZSI6ImFjY2VzcyIsInNjb3BlIjoib3BlbmlkIGVtYWlsIiwiYXV0aF90aW1lIjoxNTk3MTU5NzEzLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9RVVNOWFdzeEwiLCJleHAiOjE1OTcxNjMzMTMsImlhdCI6MTU5NzE1OTcxMywidmVyc2lvbiI6MiwianRpIjoiMTE0ZjU3ZWEtNGRkMy00NzU0LWJhN2ItODFmZGNlMGZmYTk2IiwiY2xpZW50X2lkIjoiM2FsM3IxZmF0cjIxM25kdnAydW9xY2ZnaTkiLCJ1c2VybmFtZSI6ImF1dGgwX2F1dGgwfDVmMzI5YjRmNzNlZGMxMDAzZDVmNWQ3MyJ9.K9tKXxDDoOPXa3CBrvGIPEUe2jP5CRf0AOL0_zhZgv9ej2kWU-gKcLLmIs9xkGwwCGciBAuI0pHugmCVYjWGYjw6UscZt54gszpKkAI0LS6Qxr5dzV9K-fC1ZbFLkrufj2xgWAmQ-un4RRcKBLUrog70WhlY5ABx-sHlVpPXAwXY9iiKaDL5NpiMFRFx4jgliulCkjCaSYYrhFzT2BP8iTpvRgvp4mhJ90AyvnFPNLrpJI6-jB_KtqGwIcS9rCCrJpA37n0qJ2KAwWm_BRJBx1_Gh3EzYdFQtfEJ8YCr3rh03zbZ-izvkqDknh49QTiYxR5MUqa16_BzBP8DqQGstQ&id_token=eyJraWQiOiJweElSWFRBMTBlakI3TUpBbnVLS0l1VHo1eTNCcFU4eTUxNUd3Y1lwSHg0PSIsImFsZyI6IlJTMjU2In0.eyJhdF9oYXNoIjoiZkpjcEl2U3Zia2Z5TVRSaVB6VVA4dyIsInN1YiI6IjEzZWQ4OTg2LWFmNzYtNDNhZi04ZTkyLTVkN2MzMzU4NDUzMSIsImNvZ25pdG86Z3JvdXBzIjpbInVzLWVhc3QtMV9RVVNOWFdzeExfYXV0aDAiXSwiZW1haWxfdmVyaWZpZWQiOmZhbHNlLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9RVVNOWFdzeEwiLCJjb2duaXRvOnVzZXJuYW1lIjoiYXV0aDBfYXV0aDB8NWYzMjliNGY3M2VkYzEwMDNkNWY1ZDczIiwibm9uY2UiOiJOdUFIUVZtZUhfT0FTWVRmREJwczJVLXZpNEl3VG5HYlNaUzdOUXVMVXhaSnBXSGxoVWc4TjlCMHltdEY3UE8yVHFxcHhXd0pKekNyWFFKZ1cxRFBueXRpNkhjVUV2dUh6NUctSW5uYk90akdYbktEcnNiTHRYRHBFOTRYLXBfMUk0RFRYUlNNeElGTnhEU0w0SGJma05IWkxxQVU1ZXJzcmUwWFlLVHNkNkkiLCJhdWQiOiIzYWwzcjFmYXRyMjEzbmR2cDJ1b3FjZmdpOSIsImlkZW50aXRpZXMiOlt7InVzZXJJZCI6ImF1dGgwfDVmMzI5YjRmNzNlZGMxMDAzZDVmNWQ3MyIsInByb3ZpZGVyTmFtZSI6ImF1dGgwIiwicHJvdmlkZXJUeXBlIjoiU0FNTCIsImlzc3VlciI6InVybjpzdmMuYXV0aDAuY29tIiwicHJpbWFyeSI6InRydWUiLCJkYXRlQ3JlYXRlZCI6IjE1OTcxNTg3NTU1ODMifV0sInRva2VuX3VzZSI6ImlkIiwiYXV0aF90aW1lIjoxNTk3MTU5NzEzLCJleHAiOjE1OTcxNjMzMTMsImlhdCI6MTU5NzE1OTcxMywiZW1haWwiOiJ1c2VyMDFAZXhhbXBsZS5jb20ifQ.J_ALJGY73WT8iz8AEzMM1LCdZTgkZeJ21Dhm05eoZd0RbyI3iChHZhR7T7wqBMzFSDdhTBvqen1rGKlZXZ25JODTRFIDJEMQqxPr1oC-8j-X4l1futecOUKlMybMuOrf01uMmJKvh6HRqNagtK_2m3saOCNBrYQmw-bEkiqjLmSo6CMyJEcQfCiWUvZ-xaev7oXY1-8KUkrP_rf_Z5Mov0V2yluFk6UP39rCEr7qUz1aKqMElqQiBNIamfoi6rB3oPM4qth1v92w_u1zrdtuCNBPlWqoKglejXfykPvH3Rjus2yW3I1ILzPLTxkt7mcfBuyjYBKV_zRxsDRmN1yo0g&token_type=Bearer&expires_in=3600
 ```
 
-tokens broken out
+*individual tokens broken out*
 
 ```sh
 id_token=eyJraWQiOiJweElSWFRBMTBlakI3TUpBbnVLS0l1VHo1eTNCcFU4eTUxNUd3Y1lwSHg0PSIsImFsZyI6IlJTMjU2In0.eyJhdF9oYXNoIjoiMG02X2pacDh6U0RGVWZsSUYtb18yZyIsInN1YiI6IjEzZWQ4OTg2LWFmNzYtNDNhZi04ZTkyLTVkN2MzMzU4NDUzMSIsImNvZ25pdG86Z3JvdXBzIjpbInVzLWVhc3QtMV9RVVNOWFdzeExfYXV0aDAiXSwiZW1haWxfdmVyaWZpZWQiOmZhbHNlLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9RVVNOWFdzeEwiLCJjb2duaXRvOnVzZXJuYW1lIjoiYXV0aDBfYXV0aDB8NWYzMjliNGY3M2VkYzEwMDNkNWY1ZDczIiwiYXVkIjoiM2FsM3IxZmF0cjIxM25kdnAydW9xY2ZnaTkiLCJpZGVudGl0aWVzIjpbeyJ1c2VySWQiOiJhdXRoMHw1ZjMyOWI0ZjczZWRjMTAwM2Q1ZjVkNzMiLCJwcm92aWRlck5hbWUiOiJhdXRoMCIsInByb3ZpZGVyVHlwZSI6IlNBTUwiLCJpc3N1ZXIiOiJ1cm46c3ZjLmF1dGgwLmNvbSIsInByaW1hcnkiOiJ0cnVlIiwiZGF0ZUNyZWF0ZWQiOiIxNTk3MTU4NzU1NTgzIn1dLCJ0b2tlbl91c2UiOiJpZCIsImF1dGhfdGltZSI6MTU5NzE3NjM4MywiZXhwIjoxNTk3MTc5OTgzLCJpYXQiOjE1OTcxNzYzODQsImVtYWlsIjoidXNlcjAxQGV4YW1wbGUuY29tIn0.HTAVp_VeZYnekdMgfFqiN2P4cEkY8R9T-T72omgaKU9k00-Nv_yCCrUGukzILO6_U0-UyBHhMPVu1EBByT3fKv9rtzB_5SvTLLeQhwj82ELX9_ZIrUNgVGj_bT1NCEOoLw6_HwF-hKX4gxiSiPgkOpxEsVwDLOjNAx7Jm2Bt49gZWB1DBrIsCBeIB3tEbW-2uf46eOKsJ9PilTJIY_ePLM1zr1QOal0FDUAqT44bQaEcKPKjSpYaAD4MVHnih3KDdLqoRzedJMeaIrTW8_eMODZ7GwniVcs0mDe5Z0D1wYC8iTajOtlyHEZHhAaDdw0YGvHdVWz8eGrLmVsCSdF7DA
@@ -292,13 +198,78 @@ id_token=eyJraWQiOiJweElSWFRBMTBlakI3TUpBbnVLS0l1VHo1eTNCcFU4eTUxNUd3Y1lwSHg0PSI
 &token_type=Bearer
 ```
 
-Encoded SAML response from Auth0
+---
+
+### setting signed cookies via server-side response
+
+```json
+{
+    "response": {
+        "status": "302",
+        "statusDescription": "Found",
+        "headers": {
+            "set-cookie": [
+                {
+                    "key": "Set-Cookie",
+                    "value": "CloudFront-Key-Pair-Id=APKAJK35MM4IQ2LXQOFA; domain=allthecloudbits.com; path=/; httpOnly=true"
+                },
+                {
+                    "key": "Set-Cookie",
+                    "value": "CloudFront-Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cCo6Ly9hbGx0aGVjbG91ZGJpdHMuY29tLyoiLCJDb25kaXRpb24iOnsiRGF0ZUxlc3NUaGFuIjp7IkFXUzpFcG9jaFRpbWUiOjE1OTc0MTg1MDh9fX1dfQ__; domain=allthecloudbits.com; path=/; httpOnly=true"
+                },
+                {
+                    "key": "Set-Cookie",
+                    "value": "CloudFront-Signature=di-2bRnf~V9aUz2PzzEQ98TWvCKPeRhq~mu47Xjw5Mf358bidk2OYIF9i0aaFHUB4WSAEAtLnEnxyK~b~53Dvqt7L~VswPPE7PYfBKagC3yEUxv4NIowFrgSepI4uXeQSw2ri6jG9QKZVBnP5EPAh~QNlveFt-yUYILrKlozPa72YM6UVlxbfRWGgfcSH8bwf3Yj24CUXC4V7RzZxPlXCdIhlnNkSOzIlgFH~6pJpRuPV~etpbnZ6Pt6aIE09vynwLheYMBhet9VahevUV9U~Amj1SJpsQYLmHGx0GKo-9jJxhTaeNK3pz6OlCGYMUSPslFddjBcH1CVq5Ct8rWGaQ__; domain=allthecloudbits.com; path=/; httpOnly=true"
+                }
+            ],
+            "location": [
+                {
+                    "key": "Location",
+                    "value": "/"
+                }
+            ]
+        }
+    }
+}
+```
+
+### expiring signed cookies via server-side response
+
+```json
+{
+    "response": {
+        "status": "200",
+        "statusDescription": "OK",
+        "headers": {
+            "set-cookie": [
+                {
+                    "key": "Set-Cookie",
+                    "value": "CloudFront-Key-Pair-Id=deleted; domain=allthecloudbits.com; path=/; httpOnly=true; expires=Thu, 01 Jan 1970 00:00:00 GMT"
+                },
+                {
+                    "key": "Set-Cookie",
+                    "value": "CloudFront-Policy=deleted; domain=allthecloudbits.com; path=/; httpOnly=true; expires=Thu, 01 Jan 1970 00:00:00 GMT"
+                },
+                {
+                    "key": "Set-Cookie",
+                    "value": "CloudFront-Signature=deleted; domain=allthecloudbits.com; path=/; httpOnly=true; expires=Thu, 01 Jan 1970 00:00:00 GMT"
+                }
+            ]
+        },
+        "body": "\n  <!DOCTYPE html>\n  <html lang=\"en\">\n  \n  <head>\n      <meta charset=\"UTF-8\">\n      <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n      <meta http-equiv=\"refresh\"\n          content=\"0; URL=https://allthecloudbits.auth.us-east-1.amazoncognito.com/logout?response_type=token&client_id=3al3r1fatr213ndvp2uoqcfgi9&redirect_uri=https://allthecloudbits.com/login/logout.html\" />\n      <title>logout redirect</title>\n  </head>\n  \n  <body>\n  </body>\n  \n  </html>  \n  "
+    }
+}
+```
+
+---
+
+### Example Encoded SAML response from Auth0
 
 ```sh
 PHNhbWxwOlJlc3BvbnNlIHhtbG5zOnNhbWxwPSJ1cm46b2FzaXM6bmFtZXM6dGM6U0FNTDoyLjA6cHJvdG9jb2wiIElEPSJfMTAxODU3ZTIxMzJjZWUxZmQyYTMiICBWZXJzaW9uPSIyLjAiIElzc3VlSW5zdGFudD0iMjAyMC0wOC0xMlQxNzo1Njo1Ny42MDhaIiAgRGVzdGluYXRpb249Imh0dHBzOi8vbWFuYWdlLmF1dGgwLmNvbS90ZXN0ZXIvc2FtbHAiPjxzYW1sOklzc3VlciB4bWxuczpzYW1sPSJ1cm46b2FzaXM6bmFtZXM6dGM6U0FNTDoyLjA6YXNzZXJ0aW9uIj51cm46c3ZjLmF1dGgwLmNvbTwvc2FtbDpJc3N1ZXI+PHNhbWxwOlN0YXR1cz48c2FtbHA6U3RhdHVzQ29kZSBWYWx1ZT0idXJuOm9hc2lzOm5hbWVzOnRjOlNBTUw6Mi4wOnN0YXR1czpTdWNjZXNzIi8+PC9zYW1scDpTdGF0dXM+PHNhbWw6QXNzZXJ0aW9uIHhtbG5zOnNhbWw9InVybjpvYXNpczpuYW1lczp0YzpTQU1MOjIuMDphc3NlcnRpb24iIFZlcnNpb249IjIuMCIgSUQ9Il9DNzNUZ1VPUlRSdnp0SmhNQ0xuQmVKb05XVmZRQVFhYyIgSXNzdWVJbnN0YW50PSIyMDIwLTA4LTEyVDE3OjU2OjU3LjYwMFoiPjxzYW1sOklzc3Vlcj51cm46c3ZjLmF1dGgwLmNvbTwvc2FtbDpJc3N1ZXI+PFNpZ25hdHVyZSB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC8wOS94bWxkc2lnIyI+PFNpZ25lZEluZm8+PENhbm9uaWNhbGl6YXRpb25NZXRob2QgQWxnb3JpdGhtPSJodHRwOi8vd3d3LnczLm9yZy8yMDAxLzEwL3htbC1leGMtYzE0biMiLz48U2lnbmF0dXJlTWV0aG9kIEFsZ29yaXRobT0iaHR0cDovL3d3dy53My5vcmcvMjAwMC8wOS94bWxkc2lnI3JzYS1zaGExIi8+PFJlZmVyZW5jZSBVUkk9IiNfQzczVGdVT1JUUnZ6dEpoTUNMbkJlSm9OV1ZmUUFRYWMiPjxUcmFuc2Zvcm1zPjxUcmFuc2Zvcm0gQWxnb3JpdGhtPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwLzA5L3htbGRzaWcjZW52ZWxvcGVkLXNpZ25hdHVyZSIvPjxUcmFuc2Zvcm0gQWxnb3JpdGhtPSJodHRwOi8vd3d3LnczLm9yZy8yMDAxLzEwL3htbC1leGMtYzE0biMiLz48L1RyYW5zZm9ybXM+PERpZ2VzdE1ldGhvZCBBbGdvcml0aG09Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvMDkveG1sZHNpZyNzaGExIi8+PERpZ2VzdFZhbHVlPkYvUW54N052RnB2SWVhMDRoSXovS214SkNUST08L0RpZ2VzdFZhbHVlPjwvUmVmZXJlbmNlPjwvU2lnbmVkSW5mbz48U2lnbmF0dXJlVmFsdWU+dUErRXdXT2dQbEU0eVZBZ0k4dW81bU53Tm4zRzU5Q2ZlRStaV0pmVHZEVXJwNXNaWHlYcDVheHlLZUVsU0ZnWCs4clRxYThtc010VnJWL1djS2pwZmlqUUdQTkZPY0o3OU5ldDIwTXFwNlJvUkZZb1ZOWEk5Zk54bnFtQ1dVWFpvc1hRRURrTUk5eGRZcmVHWnI0RkoyWEZZVHhESzIyd0RFbHgwUnJvY3N1V1N1alRzY0V2NzZlNmVReS91K3J4bHZta2loOWJBQ2JnVDh3VGdPVWVhTkU1YXdHMEhsTXcvaWovRkFneWZFTC9mb3Fqc3FXVXlTVlRoRGxDVzgrSEVvTzNJd3BOcjk5MnJnYXlCak4zYzc5alI4Tk1FUFYzdzgxYnR3SFR1M2RxaEx2ak9kbm9Md2VhZlZJeHphK3NiR2hZUHgxTTFSUUJVNjllUS9LVHNnPT08L1NpZ25hdHVyZVZhbHVlPjxLZXlJbmZvPjxYNTA5RGF0YT48WDUwOUNlcnRpZmljYXRlPk1JSUM5VENDQWQyZ0F3SUJBZ0lKUExqZlMwei9yR2tvTUEwR0NTcUdTSWIzRFFFQkN3VUFNQmd4RmpBVUJnTlZCQU1URFhOMll5NWhkWFJvTUM1amIyMHdIaGNOTVRjd09USXhNVE14TlRBeVdoY05NekV3TlRNeE1UTXhOVEF5V2pBWU1SWXdGQVlEVlFRREV3MXpkbU11WVhWMGFEQXVZMjl0TUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FROEFNSUlCQ2dLQ0FRRUEydWxlTTlwaHVkelU5S3VXZ2ZlZTlnQ3BpUE0rakdubHlkQjByU2lYZDBEdG5lckJRWC8vN2k3d1JTNGpKM2RlWWd3NVk5SWROTFJSZ3JXdVBRZWRSUDRGbXdRRGRxU2thTVJNdTNraDVHUHhkNGYrekxYaEduLzRPNm4ycGVBamkvQ21meGhQUW14b0xKU1VQeVhhWFNZQy95dWV6Z3NTT0IycG82N01RQW5uOGE0WTh6MVVjVE5uU2ExQmJsY2o5MGhvRFcvZ1VwK0poV2tIVFhHeGZObmNaMHpTK2FiQ0dLZE1WdUd5YnJSckFHOGtRWWpyQWVvZGlLejQ0ZWhmQTNNMmtQZVp4dGFVTFA4MTZxWCtrbFppaExsOVRDV2FocS9LQUJyYXE4VkR4NTRLSE9wbWVKUTFJRytUbjZ2SnZDeCtaSlBzVlVDWFdKd0tXazQ4RFFJREFRQUJvMEl3UURBUEJnTlZIUk1CQWY4RUJUQURBUUgvTUIwR0ExVWREZ1FXQkJTR2xaem9sNlJJRlNJRGYrOWVUeVU0S0xjWnN6QU9CZ05WSFE4QkFmOEVCQU1DQW9Rd0RRWUpLb1pJaHZjTkFRRUxCUUFEZ2dFQkFLWTFMdm9heXVPeHJXZk55MXdoU2ZtK284bVVpVUQrb0VVUDdDbEVnUmExaTE0aE1QNldaSC9XV09sTnhLSmZHZWJDZWlLNFE5enhyUlZvbk14dkZ5NkFURFpaWnc4WFRzNTdpWmFXZmtCWHhaYXhjVmk1NHVTUlM1T0ZkVU1tSFY1d2FrTVhlTWtkcXhnTFZscUNvQVlOSm9WZUpSZU83dVp1REk2Q0R0aHhEVHNFcnVGcEpnMyt2SVMzVU1GeFRWaDdqeU5RQ2xuNUFhaDZSQVRob2ozdytQMExRQjl4YjAvV1ZBWUV4bmtSTFRSQXUxdkpwM3IwN2d0MVBJT2kxaE42dVhZSG9YT2RWNmtPRDZZWTUzNU1mb0FwVTNUT1RBbmovUm5yYVYvS2EwREp1YVZhdFNkaGpjT1U2NUZUcUxaN0FuVUlQQndEeDBjUXRqdDFPMWs9PC9YNTA5Q2VydGlmaWNhdGU+PC9YNTA5RGF0YT48L0tleUluZm8+PC9TaWduYXR1cmU+PHNhbWw6U3ViamVjdD48c2FtbDpOYW1lSUQgRm9ybWF0PSJ1cm46b2FzaXM6bmFtZXM6dGM6U0FNTDoyLjA6bmFtZWlkLWZvcm1hdDpwZXJzaXN0ZW50Ij5hdXRoMHw1ZjMyOWI0ZjczZWRjMTAwM2Q1ZjVkNzM8L3NhbWw6TmFtZUlEPjxzYW1sOlN1YmplY3RDb25maXJtYXRpb24gTWV0aG9kPSJ1cm46b2FzaXM6bmFtZXM6dGM6U0FNTDoyLjA6Y206YmVhcmVyIj48c2FtbDpTdWJqZWN0Q29uZmlybWF0aW9uRGF0YSBOb3RPbk9yQWZ0ZXI9IjIwMjAtMDgtMTJUMTg6NTY6NTcuNjAwWiIgUmVjaXBpZW50PSJodHRwczovL21hbmFnZS5hdXRoMC5jb20vdGVzdGVyL3NhbWxwIi8+PC9zYW1sOlN1YmplY3RDb25maXJtYXRpb24+PC9zYW1sOlN1YmplY3Q+PHNhbWw6Q29uZGl0aW9ucyBOb3RCZWZvcmU9IjIwMjAtMDgtMTJUMTc6NTY6NTcuNjAwWiIgTm90T25PckFmdGVyPSIyMDIwLTA4LTEyVDE4OjU2OjU3LjYwMFoiPjxzYW1sOkF1ZGllbmNlUmVzdHJpY3Rpb24+PHNhbWw6QXVkaWVuY2U+dXJuOmFtYXpvbjpjb2duaXRvOnNwOnVzLWVhc3QtMV9RVVNOWFdzeEw8L3NhbWw6QXVkaWVuY2U+PC9zYW1sOkF1ZGllbmNlUmVzdHJpY3Rpb24+PC9zYW1sOkNvbmRpdGlvbnM+PHNhbWw6QXV0aG5TdGF0ZW1lbnQgQXV0aG5JbnN0YW50PSIyMDIwLTA4LTEyVDE3OjU2OjU3LjYwMFoiIFNlc3Npb25JbmRleD0iX0NxT21UVWJTMkVQQnVkSWpzNTJ1ZjdPVnFCcmRUcHFQIj48c2FtbDpBdXRobkNvbnRleHQ+PHNhbWw6QXV0aG5Db250ZXh0Q2xhc3NSZWY+dXJuOm9hc2lzOm5hbWVzOnRjOlNBTUw6Mi4wOmFjOmNsYXNzZXM6dW5zcGVjaWZpZWQ8L3NhbWw6QXV0aG5Db250ZXh0Q2xhc3NSZWY+PC9zYW1sOkF1dGhuQ29udGV4dD48L3NhbWw6QXV0aG5TdGF0ZW1lbnQ+PHNhbWw6QXR0cmlidXRlU3RhdGVtZW50IHhtbG5zOnhzPSJodHRwOi8vd3d3LnczLm9yZy8yMDAxL1hNTFNjaGVtYSIgeG1sbnM6eHNpPSJodHRwOi8vd3d3LnczLm9yZy8yMDAxL1hNTFNjaGVtYS1pbnN0YW5jZSI+PHNhbWw6QXR0cmlidXRlIE5hbWU9Imh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL2VtYWlsYWRkcmVzcyIgTmFtZUZvcm1hdD0idXJuOm9hc2lzOm5hbWVzOnRjOlNBTUw6Mi4wOmF0dHJuYW1lLWZvcm1hdDp1cmkiPjxzYW1sOkF0dHJpYnV0ZVZhbHVlIHhzaTp0eXBlPSJ4czpzdHJpbmciPnVzZXIwMUBleGFtcGxlLmNvbTwvc2FtbDpBdHRyaWJ1dGVWYWx1ZT48L3NhbWw6QXR0cmlidXRlPjxzYW1sOkF0dHJpYnV0ZSBOYW1lPSJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy91cG4iIE5hbWVGb3JtYXQ9InVybjpvYXNpczpuYW1lczp0YzpTQU1MOjIuMDphdHRybmFtZS1mb3JtYXQ6dXJpIj48c2FtbDpBdHRyaWJ1dGVWYWx1ZSB4c2k6dHlwZT0ieHM6c3RyaW5nIj51c2VyMDFAZXhhbXBsZS5jb208L3NhbWw6QXR0cmlidXRlVmFsdWU+PC9zYW1sOkF0dHJpYnV0ZT48c2FtbDpBdHRyaWJ1dGUgTmFtZT0iaHR0cDovL3NjaGVtYXMuYXV0aDAuY29tL2lkZW50aXRpZXMvZGVmYXVsdC91c2VyX2lkIiBOYW1lRm9ybWF0PSJ1cm46b2FzaXM6bmFtZXM6dGM6U0FNTDoyLjA6YXR0cm5hbWUtZm9ybWF0OnVyaSI+PHNhbWw6QXR0cmlidXRlVmFsdWUgeHNpOnR5cGU9InhzOnN0cmluZyI+NWYzMjliNGY3M2VkYzEwMDNkNWY1ZDczPC9zYW1sOkF0dHJpYnV0ZVZhbHVlPjwvc2FtbDpBdHRyaWJ1dGU+PHNhbWw6QXR0cmlidXRlIE5hbWU9Imh0dHA6Ly9zY2hlbWFzLmF1dGgwLmNvbS9pZGVudGl0aWVzL2RlZmF1bHQvcHJvdmlkZXIiIE5hbWVGb3JtYXQ9InVybjpvYXNpczpuYW1lczp0YzpTQU1MOjIuMDphdHRybmFtZS1mb3JtYXQ6dXJpIj48c2FtbDpBdHRyaWJ1dGVWYWx1ZSB4c2k6dHlwZT0ieHM6c3RyaW5nIj5hdXRoMDwvc2FtbDpBdHRyaWJ1dGVWYWx1ZT48L3NhbWw6QXR0cmlidXRlPjxzYW1sOkF0dHJpYnV0ZSBOYW1lPSJodHRwOi8vc2NoZW1hcy5hdXRoMC5jb20vaWRlbnRpdGllcy9kZWZhdWx0L2Nvbm5lY3Rpb24iIE5hbWVGb3JtYXQ9InVybjpvYXNpczpuYW1lczp0YzpTQU1MOjIuMDphdHRybmFtZS1mb3JtYXQ6dXJpIj48c2FtbDpBdHRyaWJ1dGVWYWx1ZSB4c2k6dHlwZT0ieHM6c3RyaW5nIj5Vc2VybmFtZS1QYXNzd29yZC1BdXRoZW50aWNhdGlvbjwvc2FtbDpBdHRyaWJ1dGVWYWx1ZT48L3NhbWw6QXR0cmlidXRlPjxzYW1sOkF0dHJpYnV0ZSBOYW1lPSJodHRwOi8vc2NoZW1hcy5hdXRoMC5jb20vaWRlbnRpdGllcy9kZWZhdWx0L2lzU29jaWFsIiBOYW1lRm9ybWF0PSJ1cm46b2FzaXM6bmFtZXM6dGM6U0FNTDoyLjA6YXR0cm5hbWUtZm9ybWF0OnVyaSI+PHNhbWw6QXR0cmlidXRlVmFsdWUgeHNpOnR5cGU9InhzOmJvb2xlYW4iPmZhbHNlPC9zYW1sOkF0dHJpYnV0ZVZhbHVlPjwvc2FtbDpBdHRyaWJ1dGU+PHNhbWw6QXR0cmlidXRlIE5hbWU9Imh0dHA6Ly9zY2hlbWFzLmF1dGgwLmNvbS9jbGllbnRJRCIgTmFtZUZvcm1hdD0idXJuOm9hc2lzOm5hbWVzOnRjOlNBTUw6Mi4wOmF0dHJuYW1lLWZvcm1hdDp1cmkiPjxzYW1sOkF0dHJpYnV0ZVZhbHVlIHhzaTp0eXBlPSJ4czpzdHJpbmciPjB4M2U0elZGQ252SHdGN1VHVDJHWllVSGdBMFk2dEpvPC9zYW1sOkF0dHJpYnV0ZVZhbHVlPjwvc2FtbDpBdHRyaWJ1dGU+PHNhbWw6QXR0cmlidXRlIE5hbWU9Imh0dHA6Ly9zY2hlbWFzLmF1dGgwLmNvbS9jcmVhdGVkX2F0IiBOYW1lRm9ybWF0PSJ1cm46b2FzaXM6bmFtZXM6dGM6U0FNTDoyLjA6YXR0cm5hbWUtZm9ybWF0OnVyaSI+PHNhbWw6QXR0cmlidXRlVmFsdWUgeHNpOnR5cGU9InhzOmFueVR5cGUiPlR1ZSBBdWcgMTEgMjAyMCAxMzoyMToxOSBHTVQrMDAwMCAoQ29vcmRpbmF0ZWQgVW5pdmVyc2FsIFRpbWUpPC9zYW1sOkF0dHJpYnV0ZVZhbHVlPjwvc2FtbDpBdHRyaWJ1dGU+PHNhbWw6QXR0cmlidXRlIE5hbWU9Imh0dHA6Ly9zY2hlbWFzLmF1dGgwLmNvbS9lbWFpbF92ZXJpZmllZCIgTmFtZUZvcm1hdD0idXJuOm9hc2lzOm5hbWVzOnRjOlNBTUw6Mi4wOmF0dHJuYW1lLWZvcm1hdDp1cmkiPjxzYW1sOkF0dHJpYnV0ZVZhbHVlIHhzaTp0eXBlPSJ4czpib29sZWFuIj50cnVlPC9zYW1sOkF0dHJpYnV0ZVZhbHVlPjwvc2FtbDpBdHRyaWJ1dGU+PHNhbWw6QXR0cmlidXRlIE5hbWU9Imh0dHA6Ly9zY2hlbWFzLmF1dGgwLmNvbS9uYW1lIiBOYW1lRm9ybWF0PSJ1cm46b2FzaXM6bmFtZXM6dGM6U0FNTDoyLjA6YXR0cm5hbWUtZm9ybWF0OnVyaSI+PHNhbWw6QXR0cmlidXRlVmFsdWUgeHNpOnR5cGU9InhzOnN0cmluZyI+dXNlcjAxQGV4YW1wbGUuY29tPC9zYW1sOkF0dHJpYnV0ZVZhbHVlPjwvc2FtbDpBdHRyaWJ1dGU+PHNhbWw6QXR0cmlidXRlIE5hbWU9Imh0dHA6Ly9zY2hlbWFzLmF1dGgwLmNvbS9uaWNrbmFtZSIgTmFtZUZvcm1hdD0idXJuOm9hc2lzOm5hbWVzOnRjOlNBTUw6Mi4wOmF0dHJuYW1lLWZvcm1hdDp1cmkiPjxzYW1sOkF0dHJpYnV0ZVZhbHVlIHhzaTp0eXBlPSJ4czpzdHJpbmciPnVzZXIwMTwvc2FtbDpBdHRyaWJ1dGVWYWx1ZT48L3NhbWw6QXR0cmlidXRlPjxzYW1sOkF0dHJpYnV0ZSBOYW1lPSJodHRwOi8vc2NoZW1hcy5hdXRoMC5jb20vcGljdHVyZSIgTmFtZUZvcm1hdD0idXJuOm9hc2lzOm5hbWVzOnRjOlNBTUw6Mi4wOmF0dHJuYW1lLWZvcm1hdDp1cmkiPjxzYW1sOkF0dHJpYnV0ZVZhbHVlIHhzaTp0eXBlPSJ4czpzdHJpbmciPmh0dHBzOi8vcy5ncmF2YXRhci5jb20vYXZhdGFyL2NjYzQ5ZjRkNThiMDQyOGIwZmFjZDc4YzNiODk4YmZhP3M9NDgwJmFtcDtyPXBnJmFtcDtkPWh0dHBzJTNBJTJGJTJGY2RuLmF1dGgwLmNvbSUyRmF2YXRhcnMlMkZ1cy5wbmc8L3NhbWw6QXR0cmlidXRlVmFsdWU+PC9zYW1sOkF0dHJpYnV0ZT48c2FtbDpBdHRyaWJ1dGUgTmFtZT0iaHR0cDovL3NjaGVtYXMuYXV0aDAuY29tL3VwZGF0ZWRfYXQiIE5hbWVGb3JtYXQ9InVybjpvYXNpczpuYW1lczp0YzpTQU1MOjIuMDphdHRybmFtZS1mb3JtYXQ6dXJpIj48c2FtbDpBdHRyaWJ1dGVWYWx1ZSB4c2k6dHlwZT0ieHM6YW55VHlwZSI+V2VkIEF1ZyAxMiAyMDIwIDE3OjU2OjU3IEdNVCswMDAwIChDb29yZGluYXRlZCBVbml2ZXJzYWwgVGltZSk8L3NhbWw6QXR0cmlidXRlVmFsdWU+PC9zYW1sOkF0dHJpYnV0ZT48c2FtbDpBdHRyaWJ1dGUgTmFtZT0iaHR0cDovL3NjaGVtYXMuYXV0aDAuY29tL3VzZXJfaWQiIE5hbWVGb3JtYXQ9InVybjpvYXNpczpuYW1lczp0YzpTQU1MOjIuMDphdHRybmFtZS1mb3JtYXQ6dXJpIj48c2FtbDpBdHRyaWJ1dGVWYWx1ZSB4c2k6dHlwZT0ieHM6c3RyaW5nIj5hdXRoMHw1ZjMyOWI0ZjczZWRjMTAwM2Q1ZjVkNzM8L3NhbWw6QXR0cmlidXRlVmFsdWU+PC9zYW1sOkF0dHJpYnV0ZT48c2FtbDpBdHRyaWJ1dGUgTmFtZT0iaHR0cDovL3NjaGVtYXMuYXV0aDAuY29tL2lkZW50aWZpZXIiIE5hbWVGb3JtYXQ9InVybjpvYXNpczpuYW1lczp0YzpTQU1MOjIuMDphdHRybmFtZS1mb3JtYXQ6dXJpIj48c2FtbDpBdHRyaWJ1dGVWYWx1ZSB4c2k6dHlwZT0ieHM6c3RyaW5nIj5hdXRoMHw1ZjMyOWI0ZjczZWRjMTAwM2Q1ZjVkNzM8L3NhbWw6QXR0cmlidXRlVmFsdWU+PC9zYW1sOkF0dHJpYnV0ZT48L3NhbWw6QXR0cmlidXRlU3RhdGVtZW50Pjwvc2FtbDpBc3NlcnRpb24+PC9zYW1scDpSZXNwb25zZT4=
 ```
 
-Decoded SAML response from Auth0
+### Decoded SAML response from Auth0
 
 ```xml
 <samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ID="_101857e2132cee1fd2a3"  Version="2.0" IssueInstant="2020-08-12T17:56:57.608Z"  Destination="https://manage.auth0.com/tester/samlp">
@@ -394,3 +365,72 @@ Decoded SAML response from Auth0
   </saml:Assertion>
 </samlp:Response>
 ```
+
+
+---
+
+## TODO
+
+* store id_token and refresh_token in local storage.  delete on logout
+* add architecture diagram to README.md
+* remove `IncludeBody: true` from template.yaml
+* package as Serverless Application Repository 
+* package as [AWS Service Catalog](https://aws.amazon.com/servicecatalog/) product using CloudFormation.  See [AWS CloudFormation support for AWS Service Catalog products | AWS Management & Governance Blog](https://aws.amazon.com/blogs/mt/how-to-launch-secure-and-governed-aws-resources-with-aws-cloudformation-and-aws-service-catalog/)
+
+## Completed
+
+* ~~cognito federated sso to auth0 saml2. see [Set up Auth0 as a SAML Identity Provider with an Amazon Cognito User Pool](https://aws.amazon.com/premiumsupport/knowledge-center/auth0-saml-cognito-user-pool/)~~
+* ~~configure CloudFront Error pages to redirect to cognito login URL~~
+* ~~move `LambdaEdgeLoginFunction` out of template to individual directory and use SAM to deploy~~
+* ~~DecodeVerifyJwtFunction is split into its own lambda due to lambda@edge code size constraints~~
+* ~~customize cognito login hosted ui.  remove signup, etc.~~
+* ~~`create-react-app`~~
+* ~~add "logout" link that removes cloudfront signed cookies.  must do from server-side as client-side javascript can't access the cookies.  see [Correct way to delete cookies server-side](https://stackoverflow.com/questions/5285940/correct-way-to-delete-cookies-server-side#answer-53573622)~~
+* ~~`src/lambda/login/index.js` - get `${DomainName}`, `DecodeVerifyJwtFunctionName`, `UserPoolClientId`, and CloudFront Key Pair Secrets paths from param store~~
+* ~~remove unused secrets manager secrets~~
+
+
+---
+
+## Resources
+
+**Articles**
+
+* [Node.js — Serve Private Content using AWS CloudFront](https://gosink.in/node-js-serve-private-content-using-aws-cloudfront/)
+* [Serving Private Content Using Amazon CloudFront & AWS Lambda@Edge](https://aws.amazon.com/blogs/networking-and-content-delivery/serving-private-content-using-amazon-cloudfront-aws-lambdaedge/)
+* [Authorization@Edge using cookies: Protect your Amazon CloudFront content from being downloaded by unauthenticated users](https://aws.amazon.com/blogs/networking-and-content-delivery/authorizationedge-using-cookies-protect-your-amazon-cloudfront-content-from-being-downloaded-by-unauthenticated-users/)
+* [Authorization@Edge – How to Use Lambda@Edge and JSON Web Tokens to Enhance Web Application Security](https://aws.amazon.com/blogs/networking-and-content-delivery/authorizationedge-how-to-use-lambdaedge-and-json-web-tokens-to-enhance-web-application-security/)
+* [Private static websites on S3 cheat sheet](https://stuartsandine.com/private-static-websites-on-s3/)
+* [Can I host a static website on a private Amazon S3 bucket and then serve the website using CloudFront?](https://aws.amazon.com/premiumsupport/knowledge-center/s3-cloudfront-website-access/)
+* [r/AWS | Access S3 static website from Intranet](https://www.reddit.com/r/aws/comments/bt6dlv/access_s3_static_website_from_intranet/)
+* [How to use AWS.CloudFront.Signer in Lambda function](https://stackoverflow.com/questions/38305980/how-to-use-aws-cloudfront-signer-in-lambda-function)
+* [How to Monitor Amazon CloudFront with CloudWatch](https://www.bluematador.com/blog/how-to-monitor-amazon-cloudfront-with-cloudwatch)
+
+
+**Documentation**
+
+* [AWS | Documentation | CloudFront | Overview of Serving Private Content](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-overview.html)
+* [CloudFront | Using Signed Cookies](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-signed-cookies.html)
+* [Specifying the AWS Accounts That Can Create Signed URLs and Signed Cookies (Trusted Signers) - Amazon CloudFront](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-trusted-signers.html)
+* [Class: AWS.CloudFront.Signer | AWS SDK for JavaScript](https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/CloudFront/Signer.html) - support for generating signed URLs and Cookies in node/js/ts
+
+**Code**
+
+* [aws-samples/cloudfront-authorization-at-edge](https://github.com/aws-samples/cloudfront-authorization-at-edge)
+* [CloudFront Signed Cookies Keeping Session State for API Gateway Access](https://stackoverflow.com/questions/45250493/cloudfront-signed-cookies-keeping-session-state-for-api-gateway-access)
+* [h-arora/aws-cloudfront-cookie-signer](https://github.com/h-arora/aws-cloudfront-cookie-signer)
+* [pfeilbr/azure-pipelines-playground](https://github.com/pfeilbr/azure-pipelines-playground) - specifically CloudFormation template @ [azure-pipelines-playground/cfn-templates/resources.yaml](https://github.com/pfeilbr/azure-pipelines-playground/blob/master/cfn-templates/resources.yaml)
+* [pfeilbr/aws-cognito-playground](https://github.com/pfeilbr/aws-cognito-playground)
+* [pfeilbr/cognito-federated-to-salesforce-and-s3-presigned-url-playground](https://github.com/pfeilbr/cognito-federated-to-salesforce-and-s3-presigned-url-playground)
+
+
+---
+
+## Scratch
+
+```sh
+
+```
+
+
+

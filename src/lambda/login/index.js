@@ -314,7 +314,7 @@ exports.handler = async (event, context, callback) => {
 
     let response = forbiddenResponse();
     if (decodeVerifyJwtResponse && decodeVerifyJwtResponse.isValid) {
-      response = getSignedCookies302RedirectResponse("/");
+      response = await getSignedCookies302RedirectResponse("/");
     }
 
     log({ response });

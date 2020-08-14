@@ -4,6 +4,8 @@ const pkg = require("./package.json");
 const AWS = require("aws-sdk");
 const { assert } = require("console");
 
+const handler = require("./index").handler;
+
 const lambda = new AWS.Lambda();
 
 async function asyncForEach(array, callback) {
@@ -34,13 +36,25 @@ const invokeLambdaRemote = async (name, payload) => {
   return resp;
 };
 
-test("remote", async () => {
-  await asyncForEach(glob.sync("event*"), async (eventFile) => {
-    const payload = fs.readFileSync(eventFile);
-    const resp = await invokeLambdaRemote(pkg.config.functionName, payload);
-    //console.log(resp);
-    expect(resp.Payload).toBeDefined();
-    const result = JSON.parse(resp.Payload);
+const testEventsWithHandler = async (handler) => {
+  return await asyncForEach(glob.sync("event*"), async (eventFile) => {
+    const event = JSON.parse(fs.readFileSync(eventFile));
+    const result = await handler(event);
     expect(result.status || result.body).toBeTruthy();
   });
+};
+
+test("unit", async () => {
+  await testEventsWithHandler(handler);
 });
+
+// test("remote", async () => {
+//   await asyncForEach(glob.sync("event*"), async (eventFile) => {
+//     const payload = fs.readFileSync(eventFile);
+//     const resp = await invokeLambdaRemote(pkg.config.functionName, payload);
+//     //console.log(resp);
+//     expect(resp.Payload).toBeDefined();
+//     const result = JSON.parse(resp.Payload);
+//     expect(result.status || result.body).toBeTruthy();
+//   });
+// });
