@@ -7,6 +7,16 @@ Description: >
 
 Parameters:
 
+  EnvType: 
+    Description: Environment type.
+    Default: dev
+    Type: String
+    AllowedValues:
+      - dev
+      - test      
+      - prod
+    ConstraintDescription: must specify dev, test or prod.  
+
   BareDomainName:
     Type: String
     Description: The domain name.
@@ -22,12 +32,10 @@ Parameters:
     Description: The domain name.
     Default: staging.allthecloudbits.com
 
-
   CloudFrontKeyPairId:
     Type: String
     Description: The CloudFront Key Pair Id used to create signed cookies.
     Default: "APKAJK35MM4IQ2LXQOFA"
-
 
   LoginPageRelativePath:
     Type: String
@@ -62,6 +70,9 @@ Parameters:
     MinLength: '1'
     MaxLength: '41'
     ConstraintDescription: the password must be between 1 and 41 characters
+
+Conditions: 
+  IsDev: !Equals [ !Ref EnvType, dev ]    
 
 Resources:
 
@@ -1031,3 +1042,6 @@ Outputs:
   UserPoolIdentityProviderID:
     Value: !Ref UserPoolIdentityProvider
     Description: UserPoolIdentityProvider Id
+  IsDevOutputTest:
+    Condition: IsDev
+    Value: "IsDev is true"
