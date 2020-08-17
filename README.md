@@ -389,6 +389,9 @@ PHNhbWxwOlJlc3BvbnNlIHhtbG5zOnNhbWxwPSJ1cm46b2FzaXM6bmFtZXM6dGM6U0FNTDoyLjA6cHJv
 * ~~add "logout" link that removes cloudfront signed cookies.  must do from server-side as client-side javascript can't access the cookies.  see [Correct way to delete cookies server-side](https://stackoverflow.com/questions/5285940/correct-way-to-delete-cookies-server-side#answer-53573622)~~
 * ~~`src/lambda/login/index.js` - get `${DomainName}`, `DecodeVerifyJwtFunctionName`, `UserPoolClientId`, and CloudFront Key Pair Secrets paths from param store~~
 * ~~remove unused secrets manager secrets~~
+* ~~fix for `allthecloudbits.com/login/auth/`~~
+  * ~~for  `/login/auth/` send 200 in response with html meta refresh/redirect tag to root / instead of 302. <head><meta http-equiv="refresh" content=1;url="<?=$url?>"></head>~~
+
 
 
 ---

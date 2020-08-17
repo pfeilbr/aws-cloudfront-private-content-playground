@@ -14,7 +14,13 @@ const CloudFront = require("aws-sdk/clients/cloudfront");
 const fs = require("fs");
 const querystring = require("querystring");
 const jwtDecode = require("jwt-decode");
-const log = (o) => console.log(JSON.stringify(o, null, 2));
+
+const Debug = true;
+const log = (o) => {
+  if (process.env.DEBUG || Debug) {
+    console.log(JSON.stringify(o, null, 2));
+  }
+};
 
 // cache expensive operation of loading config from SSM paramater store and secrets manager
 let Config = null;
@@ -164,7 +170,7 @@ const getLogoutResponse = async () => {
   return response;
 };
 
-const getSignedCookies302RedirectResponse = async (location) => {
+const getSignedCookiesRedirectResponse = async (location) => {
   // cache because expensive (time) operation
   if (!Config.CloudFrontKeyPairPrivateKey) {
     Config.CloudFrontKeyPairPrivateKey = await getCloudFrontKeyPairPrivateKeyFromSecretsManager();
@@ -188,18 +194,22 @@ const getSignedCookies302RedirectResponse = async (location) => {
     });
   });
 
+  const body = `<html><head><meta http-equiv="refresh" content="0;url=${location}"></head></html>`;
+
   const response = {
-    status: "302",
-    statusDescription: "Found",
+    status: "200",
+    statusDescription: "OK",
     headers: respHeaders,
+    body,
+    bodyEncoding: "text",
   };
 
-  response.headers.location = [
-    {
-      key: "Location",
-      value: location,
-    },
-  ];
+  // response.headers.location = [
+  //   {
+  //     key: "Location",
+  //     value: location,
+  //   },
+  // ];
 
   return response;
 };
@@ -233,7 +243,9 @@ const getValidateAccessTokenResult = async (token) => {
   return null;
 };
 
-exports.handler = async (event, context, callback) => {
+let validateAccessTokenFn = getValidateAccessTokenResult;
+
+const handler = async (event, context, callback) => {
   log({ event });
 
   const request = event.Records[0].cf.request;
@@ -249,21 +261,14 @@ exports.handler = async (event, context, callback) => {
     log({ params });
 
     const accessToken = params["access_token"];
-    const decodeVerifyJwtResponse = await getValidateAccessTokenResult(
-      accessToken
-    );
+    const decodeVerifyJwtResponse = await validateAccessTokenFn(accessToken);
     log({ decodeVerifyJwtResponse });
 
     // e.g. VALID decodeVerifyJwtResponse
     // {
-    //   "userName": "",
-    //   "clientId": "",
-    //   "error": {
-    //     "name": "TokenExpiredError",
-    //     "message": "jwt expired",
-    //     "expiredAt": "2020-08-12T18:16:39.000Z"
-    //   },
-    //   "isValid": false
+    //   "userName": "auth0_auth0|5f329b4f73edc1003d5f5d73",
+    //   "clientId": "3al3r1fatr213ndvp2uoqcfgi9",
+    //   "isValid": true
     // }
 
     // e.g. INVALID decodeVerifyJwtResponse
@@ -314,7 +319,7 @@ exports.handler = async (event, context, callback) => {
 
     let response = forbiddenResponse();
     if (decodeVerifyJwtResponse && decodeVerifyJwtResponse.isValid) {
-      response = await getSignedCookies302RedirectResponse("/");
+      response = await getSignedCookiesRedirectResponse("/");
     }
 
     log({ response });
@@ -330,3 +335,16 @@ exports.handler = async (event, context, callback) => {
     return request;
   }
 };
+
+const wrap = (
+  deps = {
+    validateAccessTokenFn: getValidateAccessTokenResult,
+  }
+) => async (event) => {
+  validateAccessTokenFn = deps.validateAccessTokenFn;
+  return handler(event);
+};
+
+module.exports.wrap = wrap;
+
+module.exports.handler = wrap();
