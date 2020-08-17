@@ -366,7 +366,6 @@ PHNhbWxwOlJlc3BvbnNlIHhtbG5zOnNhbWxwPSJ1cm46b2FzaXM6bmFtZXM6dGM6U0FNTDoyLjA6cHJv
 </samlp:Response>
 ```
 
-
 ---
 
 ## TODO
