@@ -126,6 +126,13 @@ const getExpireSignedCookiesHeaders = async () => {
   const headers = {};
   headers["set-cookie"] = [];
 
+  // disable caching
+  headers["cache-control"] = [
+    { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+  ];
+  headers["pragma"] = [{ key: "Pragma", value: "no-cache" }];
+  headers["expires"] = [{ key: "Expires", value: "0" }];
+
   cloudFrontSignedCookieHeaderKeys.forEach((key) => {
     const value = "deleted";
     headers["set-cookie"].push({
@@ -152,6 +159,12 @@ const getLogoutResponse = async () => {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <meta http-equiv="refresh"
           content="0; URL=https://allthecloudbits.auth.us-east-1.amazoncognito.com/logout?response_type=token&client_id=${Config.UserPoolClientId}&redirect_uri=https://allthecloudbits.com/login/logout.html" />
+
+      <!-- no cache -->
+      <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+      <meta http-equiv="Pragma" content="no-cache" />
+      <meta http-equiv="Expires" content="0" />
+          
       <title>logout redirect</title>
   </head>
   
@@ -194,7 +207,23 @@ const getSignedCookiesRedirectResponse = async (location) => {
     });
   });
 
-  const body = `<html><head><meta http-equiv="refresh" content="0;url=${location}"></head></html>`;
+  // disable caching
+  respHeaders["cache-control"] = [
+    { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+  ];
+  respHeaders["pragma"] = [{ key: "Pragma", value: "no-cache" }];
+  respHeaders["expires"] = [{ key: "Expires", value: "0" }];
+
+  const body = `
+    <html>
+      <head>
+        <!-- no cache -->
+        <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+        <meta http-equiv="Pragma" content="no-cache" />
+        <meta http-equiv="Expires" content="0" />      
+        <script>document.location = "${location}"</script>
+      </head>
+    </html>`;
 
   const response = {
     status: "200",
@@ -319,7 +348,9 @@ const handler = async (event, context, callback) => {
 
     let response = forbiddenResponse();
     if (decodeVerifyJwtResponse && decodeVerifyJwtResponse.isValid) {
-      response = await getSignedCookiesRedirectResponse("/");
+      response = await getSignedCookiesRedirectResponse(
+        `/?cache-bust-with-unique-query-string-for-demo-purposes=${new Date().getTime()}`
+      );
     }
 
     log({ response });

@@ -1,6 +1,140 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import logo from "./logo.svg";
 import "./App.css";
+
+const mockGetApiResponse = async () => {
+  return {
+    resource: "/{proxy+}",
+    path: "/api/",
+    httpMethod: "GET",
+    headers: {
+      "Accept-Encoding": "gzip",
+      "CloudFront-Forwarded-Proto": "https",
+      "CloudFront-Is-Desktop-Viewer": "true",
+      "CloudFront-Is-Mobile-Viewer": "false",
+      "CloudFront-Is-SmartTV-Viewer": "false",
+      "CloudFront-Is-Tablet-Viewer": "false",
+      "CloudFront-Viewer-Country": "US",
+      Cookie:
+        "CloudFront-Key-Pair-Id=APKAJK35MM4IQ2LXQOFA; CloudFront-Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cCo6Ly9hbGx0aGVjbG91ZGJpdHMuY29tLyoiLCJDb25kaXRpb24iOnsiRGF0ZUxlc3NUaGFuIjp7IkFXUzpFcG9jaFRpbWUiOjE1OTgzNjM3NDJ9fX1dfQ__; CloudFront-Signature=tpZlOOmh9TJn4aHnaqfSLn8sRCIfkeCZQrtBxCTTOCAhoeV~yM-ek32y-XgNUkumMZOrNSvRL6IuT6G0Gdwt~B8WvJlVFlccqUahkCQIQRMRzf3NriLDpsNc1EdYCSBBW1FiitnIj0IsGl1UfKm07Wt4pE1RHOp8tGT80nmeNU-ARdA1Yo4zqEQAqJmGoRheWSc83WX-Qf2CVReNfE7N9H-UTTaIiUsJNNYYfalBjgAA2cwOxDRspU7TUjpG6hV51~s-nrCxZGzUd1h0SDNFbIb5cLqh0gXRGsDoUE2mckw5SrX85zkEqzmT4MqI5czoVCLqjy~izxD7Wd~4WrDrTg__",
+      Host: "wzuxpzwyq6.execute-api.us-east-1.amazonaws.com",
+      "sec-fetch-dest": "document",
+      "sec-fetch-mode": "navigate",
+      "sec-fetch-site": "none",
+      "sec-fetch-user": "?1",
+      "upgrade-insecure-requests": "1",
+      "User-Agent": "Amazon CloudFront",
+      Via:
+        "2.0 a5f21c3d06407705927942b02b1d5049.cloudfront.net (CloudFront), 1.1 193d4441ee6d312fd234f2d28e48c110.cloudfront.net (CloudFront)",
+      "X-Amz-Cf-Id": "Jh0QCMJfNoNclii1VCxYrATCXG-pA4pG3RkL-dJndvGL3Fz9yOCxVw==",
+      "X-Amzn-Trace-Id": "Root=1-5f450d77-415f44ac8177420e5d95406d",
+      "X-Forwarded-For": "100.11.117.63, 130.176.17.135, 130.176.17.136",
+      "X-Forwarded-Port": "443",
+      "X-Forwarded-Proto": "https",
+    },
+    multiValueHeaders: {
+      "Accept-Encoding": ["gzip"],
+      "CloudFront-Forwarded-Proto": ["https"],
+      "CloudFront-Is-Desktop-Viewer": ["true"],
+      "CloudFront-Is-Mobile-Viewer": ["false"],
+      "CloudFront-Is-SmartTV-Viewer": ["false"],
+      "CloudFront-Is-Tablet-Viewer": ["false"],
+      "CloudFront-Viewer-Country": ["US"],
+      Cookie: [
+        "CloudFront-Key-Pair-Id=APKAJK35MM4IQ2LXQOFA; CloudFront-Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cCo6Ly9hbGx0aGVjbG91ZGJpdHMuY29tLyoiLCJDb25kaXRpb24iOnsiRGF0ZUxlc3NUaGFuIjp7IkFXUzpFcG9jaFRpbWUiOjE1OTgzNjM3NDJ9fX1dfQ__; CloudFront-Signature=tpZlOOmh9TJn4aHnaqfSLn8sRCIfkeCZQrtBxCTTOCAhoeV~yM-ek32y-XgNUkumMZOrNSvRL6IuT6G0Gdwt~B8WvJlVFlccqUahkCQIQRMRzf3NriLDpsNc1EdYCSBBW1FiitnIj0IsGl1UfKm07Wt4pE1RHOp8tGT80nmeNU-ARdA1Yo4zqEQAqJmGoRheWSc83WX-Qf2CVReNfE7N9H-UTTaIiUsJNNYYfalBjgAA2cwOxDRspU7TUjpG6hV51~s-nrCxZGzUd1h0SDNFbIb5cLqh0gXRGsDoUE2mckw5SrX85zkEqzmT4MqI5czoVCLqjy~izxD7Wd~4WrDrTg__",
+      ],
+      Host: ["wzuxpzwyq6.execute-api.us-east-1.amazonaws.com"],
+      "sec-fetch-dest": ["document"],
+      "sec-fetch-mode": ["navigate"],
+      "sec-fetch-site": ["none"],
+      "sec-fetch-user": ["?1"],
+      "upgrade-insecure-requests": ["1"],
+      "User-Agent": ["Amazon CloudFront"],
+      Via: [
+        "2.0 a5f21c3d06407705927942b02b1d5049.cloudfront.net (CloudFront), 1.1 193d4441ee6d312fd234f2d28e48c110.cloudfront.net (CloudFront)",
+      ],
+      "X-Amz-Cf-Id": [
+        "Jh0QCMJfNoNclii1VCxYrATCXG-pA4pG3RkL-dJndvGL3Fz9yOCxVw==",
+      ],
+      "X-Amzn-Trace-Id": ["Root=1-5f450d77-415f44ac8177420e5d95406d"],
+      "X-Forwarded-For": ["100.11.117.63, 130.176.17.135, 130.176.17.136"],
+      "X-Forwarded-Port": ["443"],
+      "X-Forwarded-Proto": ["https"],
+    },
+    queryStringParameters: null,
+    multiValueQueryStringParameters: null,
+    pathParameters: { proxy: "api" },
+    stageVariables: null,
+    requestContext: {
+      resourceId: "7sk4hd",
+      resourcePath: "/{proxy+}",
+      httpMethod: "GET",
+      extendedRequestId: "R08KtG-XIAMFhhQ=",
+      requestTime: "25/Aug/2020:13:09:11 +0000",
+      path: "/Prod/api/",
+      accountId: "529276214230",
+      protocol: "HTTP/1.1",
+      stage: "Prod",
+      domainPrefix: "wzuxpzwyq6",
+      requestTimeEpoch: 1598360951625,
+      requestId: "988945d8-5ae8-4fd2-9c1f-4c6ebd411c2b",
+      identity: {
+        cognitoIdentityPoolId: null,
+        accountId: null,
+        cognitoIdentityId: null,
+        caller: null,
+        sourceIp: "130.176.17.135",
+        principalOrgId: null,
+        accessKey: null,
+        cognitoAuthenticationType: null,
+        cognitoAuthenticationProvider: null,
+        userArn: null,
+        userAgent: "Amazon CloudFront",
+        user: null,
+      },
+      domainName: "wzuxpzwyq6.execute-api.us-east-1.amazonaws.com",
+      apiId: "wzuxpzwyq6",
+    },
+    body: null,
+    isBase64Encoded: false,
+  };
+};
+
+const getApiResponse = async () => {
+  // const resp = await fetch("/api/", {
+  //   method: "GET",
+  //   headers: {
+  //     "Content-Type": "application/json",
+  //   },
+  //   credentials: "include",
+  // });
+  // const data = await resp.json();
+  const data = await mockGetApiResponse();
+  console.log(JSON.stringify(data, null, 2));
+  return data;
+};
+
+const ApiDemoComponent = () => {
+  const [data, setData] = useState(null);
+
+  useEffect(async () => {
+    const data = await getApiResponse();
+    setData(data);
+  }, []);
+
+  return (
+    <div>
+      <strong>
+        authenticated (jwt) <code>/api/</code>
+        <br />
+        echo response from api gateway + lambda
+      </strong>
+      <br />
+      <br />
+      <textarea value={JSON.stringify(data, null, 2)} rows={4} cols={60} />
+    </div>
+  );
+};
 
 function App() {
   return (
@@ -14,6 +148,7 @@ function App() {
           alt="logo"
         />
         <p>You are viewing "private" content from CloudFront.</p>
+        <ApiDemoComponent />
         <a
           className="App-link"
           href="https://github.com/pfeilbr/aws-cloudfront-private-content-playground"

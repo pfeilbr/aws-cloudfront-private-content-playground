@@ -252,13 +252,23 @@ Resources:
         DefaultCacheBehavior:
           TargetOriginId: "WebsiteBucketOrigin"
           ViewerProtocolPolicy: "redirect-to-https"
-          DefaultTTL: 0 # 600 # ten minutes
-          MaxTTL: 0 # 600 # ten minutes
-          Compress: true
-          ForwardedValues:
-            QueryString: false
-            Cookies:
-              Forward: "none"
+          CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad # aws managed cache policy (Name: Managed-CachingDisabled).  see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html
+          # DefaultTTL: 0
+          # MaxTTL: 0
+          # MinTTL: 0
+          # ForwardedValues:
+          #   QueryString: true
+          #   Cookies:
+          #     Forward: all
+          AllowedMethods:
+          - DELETE
+          - GET
+          - HEAD
+          - OPTIONS
+          - PATCH
+          - POST
+          - PUT
+
 
           TrustedSigners:
             - self              

@@ -390,8 +390,7 @@ PHNhbWxwOlJlc3BvbnNlIHhtbG5zOnNhbWxwPSJ1cm46b2FzaXM6bmFtZXM6dGM6U0FNTDoyLjA6cHJv
 * ~~remove unused secrets manager secrets~~
 * ~~fix for `allthecloudbits.com/login/auth/`~~
   * ~~for  `/login/auth/` send 200 in response with html meta refresh/redirect tag to root / instead of 302. <head><meta http-equiv="refresh" content=1;url="<?=$url?>"></head>~~
-
-
+* ~~update to use CF [cache policy](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/working-with-policies.html) over using the deprecated cfn properties. Try the following managed policy by setting the [CachePolicyId](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-cloudfront-distribution-defaultcachebehavior.html#cfn-cloudfront-distribution-defaultcachebehavior-cachepolicyid) property to Name: Managed-CachingDisabled, ID: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad.~~
 
 ---
 
@@ -432,6 +431,21 @@ PHNhbWxwOlJlc3BvbnNlIHhtbG5zOnNhbWxwPSJ1cm46b2FzaXM6bmFtZXM6dGM6U0FNTDoyLjA6cHJv
 ## Scratch
 
 ```sh
+
+<script>document.location = "/"</script>
+
+
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" /><meta http-equiv="Pragma" content="no-cache" /><meta http-equiv="Expires" content="0" />
+
+Cache-Control: no-cache, no-store, must-revalidate
+Pragma: no-cache
+Expires: 0
+
+window.location.search
+
+const queryString = window.location.search;
+const urlParams = new URLSearchParams(queryString);
+
 
 ```
 
