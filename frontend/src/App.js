@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import logo from "./logo.svg";
 import "./App.css";
 
 const mockGetApiResponse = async () => {
@@ -101,27 +100,46 @@ const mockGetApiResponse = async () => {
 };
 
 const getApiResponse = async () => {
-  const auth = JSON.parse(localStorage.getItem("auth"));
-  const resp = await fetch("/api/", {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${auth.idToken}`,
-    },
-    credentials: "include",
-  });
-  const data = await resp.json();
-  //const data = await mockGetApiResponse();
-  console.log(JSON.stringify(data, null, 2));
-  return data;
+  let auth = null;
+  const authLocalStorageKey = "auth";
+
+  try {
+    auth = JSON.parse(localStorage.getItem(authLocalStorageKey));
+    const resp = await fetch("/api/", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${auth.idToken}`,
+      },
+      credentials: "include",
+    });
+    const data = process.env.TEST
+      ? await mockGetApiResponse()
+      : await resp.json();
+    console.log(JSON.stringify(data, null, 2));
+    return data;
+  } catch (err) {
+    console.error(
+      `failed to load and parse "${authLocalStorageKey}" from localStorage `,
+      err
+    );
+    throw err;
+  }
 };
 
 const ApiDemoComponent = () => {
   const [data, setData] = useState(null);
 
-  useEffect(async () => {
-    const data = await getApiResponse();
-    setData(data);
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await getApiResponse();
+        setData(data);
+      } catch (error) {
+        console.error(error);
+        setData({ error });
+      }
+    })();
   }, []);
 
   return (
@@ -133,9 +151,35 @@ const ApiDemoComponent = () => {
       </strong>
       <br />
       <br />
-      <textarea value={JSON.stringify(data, null, 2)} rows={4} cols={60} />
+      {data && data.error ? (
+        <>
+          <p>failed to load data</p>
+          <pre>
+            <code>{data.error.toString()}</code>
+          </pre>
+        </>
+      ) : (
+        <textarea
+          value={JSON.stringify(data, null, 2)}
+          rows={4}
+          cols={60}
+          readOnly
+        />
+      )}
     </div>
   );
+};
+
+const handleLogout = (e) => {
+  e.preventDefault();
+  const authLocalStorageKey = "auth";
+  const logoutPath = "/login/logout";
+  console.log(
+    `logging out. deleting "${authLocalStorageKey}" localStorage key`
+  );
+  localStorage.removeItem(authLocalStorageKey);
+  console.log(`redirecting to "${logoutPath}"`);
+  document.location = logoutPath;
 };
 
 function App() {
@@ -161,7 +205,9 @@ function App() {
         </a>
 
         <p>
-          <a href="/login/logout">logout</a>
+          <a href="#" onClick={handleLogout}>
+            logout
+          </a>
         </p>
       </header>
     </div>
