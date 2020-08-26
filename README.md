@@ -513,8 +513,6 @@ PHNhbWxwOlJlc3BvbnNlIHhtbG5zOnNhbWxwPSJ1cm46b2FzaXM6bmFtZXM6dGM6U0FNTDoyLjA6cHJv
 
 ## TODO
 
-* add cognito authorizer to api gateway `/api/` endpoint.
-  * [Include the identity token in the Authorization header](https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-invoke-api-integrated-with-cognito-user-pool.html)
 * store id_token and refresh_token in local storage.  delete on logout
 * add standard set of cw alarms for 4xx and 5xx thresholds.  make thresholds configurable via cfn params.  create cw dashboard from these.
 * add architecture diagram to README.md
@@ -536,6 +534,9 @@ PHNhbWxwOlJlc3BvbnNlIHhtbG5zOnNhbWxwPSJ1cm46b2FzaXM6bmFtZXM6dGM6U0FNTDoyLjA6cHJv
 * ~~fix for `allthecloudbits.com/login/auth/`~~
   * ~~for  `/login/auth/` send 200 in response with html meta refresh/redirect tag to root / instead of 302. <head><meta http-equiv="refresh" content=1;url="<?=$url?>"></head>~~
 * ~~update to use CF [cache policy](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/working-with-policies.html) over using the deprecated cfn properties. Try the following managed policy by setting the [CachePolicyId](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-cloudfront-distribution-defaultcachebehavior.html#cfn-cloudfront-distribution-defaultcachebehavior-cachepolicyid) property to Name: Managed-CachingDisabled, ID: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad.~~
+* ~~add cognito authorizer to api gateway `/api/` endpoint.~~
+  * ~~[Include the identity token in the Authorization header](https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-invoke-api-integrated-with-cognito-user-pool.html)~~
+
 
 ---
 
