@@ -1052,7 +1052,7 @@ Outputs:
     Value: !Ref 'AutomationUserAccessKey'
     Description: AWSAccessKeyId of new user
   SecretKey:
-    Value: !GetAtt AutomationUserAccessKey.SecretAccessKey
+    Value: OMITTED #!GetAtt AutomationUserAccessKey.SecretAccessKey
     Description: AWSSecretAccessKey of new user
   UserPoolId:
     Value: !Ref UserPool
