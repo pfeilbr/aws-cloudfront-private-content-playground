@@ -1,0 +1,161 @@
+[
+    {
+        "OutputKey": "StagingCloudFrontDistributionDomainName",
+        "OutputValue": "d2gu0dcq0ay0zy.cloudfront.net",
+        "Description": "The CloudFront staging distribution domain name"
+    },
+    {
+        "OutputKey": "CloudFrontDistributionDomainName",
+        "OutputValue": "d3ckn35upp3hqn.cloudfront.net",
+        "Description": "The CloudFront distribution domain name"
+    },
+    {
+        "OutputKey": "CloudFrontKeyPairPrivateKeySecretArn",
+        "OutputValue": "arn:aws:secretsmanager:us-east-1:529276214230:secret:CloudFrontKeyPairPrivateKey-wyIIfg9we8yz-7NNnlb",
+        "Description": "The Arn to the CloudFront Key Pair Private Key Secret"
+    },
+    {
+        "OutputKey": "CloudFrontDistributionId",
+        "OutputValue": "E1MRVYJMB0EYMC",
+        "Description": "The CloudFront distribution id"
+    },
+    {
+        "OutputKey": "WebsiteBucketArn",
+        "OutputValue": "arn:aws:s3:::dev-private-website-s3bucketforwebsitecontent-6c10v966p6s7",
+        "Description": "The Arn of the website bucket"
+    },
+    {
+        "OutputKey": "StagingWebsiteBucketArn",
+        "OutputValue": "arn:aws:s3:::staging-bucket.allthecloudbits.com",
+        "Description": "The Arn of the staging website bucket"
+    },
+    {
+        "OutputKey": "StagingWebsiteBucketName",
+        "OutputValue": "staging-bucket.allthecloudbits.com",
+        "Description": "The logical ID of the staging website bucket"
+    },
+    {
+        "OutputKey": "StagingCloudFrontDistributionURL",
+        "OutputValue": "https://d2gu0dcq0ay0zy.cloudfront.net",
+        "Description": "The CloudFront staging distribution URL"
+    },
+    {
+        "OutputKey": "UserPoolIdentityProviderID",
+        "OutputValue": "auth0",
+        "Description": "UserPoolIdentityProvider Id"
+    },
+    {
+        "OutputKey": "UserPoolProviderName",
+        "OutputValue": "cognito-idp.us-east-1.amazonaws.com/us-east-1_yKNkQEkKa",
+        "Description": "UserPool Provider Name"
+    },
+    {
+        "OutputKey": "ApiURL",
+        "OutputValue": "https://9t5xagyya6.execute-api.us-east-1.amazonaws.com/Prod",
+        "Description": "API endpoint URL for Prod environment"
+    },
+    {
+        "OutputKey": "StagingCloudFrontDistributionId",
+        "OutputValue": "EKXALSYJPVQQX",
+        "Description": "The CloudFront staging distribution id"
+    },
+    {
+        "OutputKey": "WwwWebsiteURL",
+        "OutputValue": "https://www.allthecloudbits.com",
+        "Description": "The www website URL"
+    },
+    {
+        "OutputKey": "CloudFrontLogsBucketName",
+        "OutputValue": "dev-private-website-cloudfrontlogsbucket-g7y27q9kotkf",
+        "Description": "The logical ID of the CloudFront logs bucket"
+    },
+    {
+        "OutputKey": "AccessKey",
+        "OutputValue": "AKIAXWO2SDPLAE34EMUZ",
+        "Description": "AWSAccessKeyId of new user"
+    },
+    {
+        "OutputKey": "IsDevOutputTest",
+        "OutputValue": "IsDev is true"
+    },
+    {
+        "OutputKey": "UserPoolProviderURL",
+        "OutputValue": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_yKNkQEkKa",
+        "Description": "UserPool Provider URL"
+    },
+    {
+        "OutputKey": "CloudFrontLogsBucketArn",
+        "OutputValue": "arn:aws:s3:::dev-private-website-cloudfrontlogsbucket-g7y27q9kotkf",
+        "Description": "The Arn of the CloudFront logs bucket"
+    },
+    {
+        "OutputKey": "UserPoolArn",
+        "OutputValue": "arn:aws:cognito-idp:us-east-1:529276214230:userpool/us-east-1_yKNkQEkKa",
+        "Description": "UserPool Arn"
+    },
+    {
+        "OutputKey": "RoleId",
+        "OutputValue": "dev-private-website-AutomationRole-SFI473A825L8",
+        "Description": "The logical ID of the IAM role"
+    },
+    {
+        "OutputKey": "RoleArn",
+        "OutputValue": "arn:aws:iam::529276214230:role/dev-private-website-AutomationRole-SFI473A825L8",
+        "Description": "The ARN of the IAM role"
+    },
+    {
+        "OutputKey": "UserPoolClientId",
+        "OutputValue": "1jtt4va6j9kgn84h1n6n56s5ct",
+        "Description": "UserPoolClient Id"
+    },
+    {
+        "OutputKey": "SecretKey",
+        "OutputValue": "bK5rCrcYb6zIjH3Yapny2I9rVwoGx55jCiAQL1dx",
+        "Description": "AWSSecretAccessKey of new user"
+    },
+    {
+        "OutputKey": "UserPoolId",
+        "OutputValue": "us-east-1_yKNkQEkKa",
+        "Description": "UserPool Id"
+    },
+    {
+        "OutputKey": "WebsiteBucketName",
+        "OutputValue": "dev-private-website-s3bucketforwebsitecontent-6c10v966p6s7",
+        "Description": "The logical ID of the website bucket"
+    },
+    {
+        "OutputKey": "ApexWebsiteURL",
+        "OutputValue": "https://allthecloudbits.com",
+        "Description": "The apex website URL"
+    },
+    {
+        "OutputKey": "CloudFrontDistributionURL",
+        "OutputValue": "https://d3ckn35upp3hqn.cloudfront.net",
+        "Description": "The CloudFront distribution URL"
+    },
+    {
+        "OutputKey": "StagingWebsiteURL",
+        "OutputValue": "https://staging.allthecloudbits.com",
+        "Description": "The staging website URL"
+    },
+    {
+        "OutputKey": "WebsiteBucketUrl",
+        "OutputValue": "http://dev-private-website-s3bucketforwebsitecontent-6c10v966p6s7.s3-website-us-east-1.amazonaws.com",
+        "Description": "The website URL of the website bucket"
+    },
+    {
+        "OutputKey": "StagingWebsiteBucketUrl",
+        "OutputValue": "http://staging-bucket.allthecloudbits.com.s3-website-us-east-1.amazonaws.com",
+        "Description": "The website URL of the staging website bucket"
+    },
+    {
+        "OutputKey": "PolicyId",
+        "OutputValue": "dev-p-Auto-1ZGR5OUDS5MR",
+        "Description": "The logical ID of the IAM policy"
+    },
+    {
+        "OutputKey": "StackName",
+        "OutputValue": "dev-private-website",
+        "Description": "The stack name"
+    }
+]

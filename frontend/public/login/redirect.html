@@ -15,11 +15,36 @@
 </head>
 
 <body>
+    <script src="/login/amazon-cognito-identity.min.js"></script>
     <!-- <h1>/login/redirect.html</h1>
     <h3>redirecting with authorization tokens</h3> -->
     <script>
-        // redirecting with authorization tokens
-        document.location = "/login/auth/?" + document.location.hash.substring(1)
+        let awsConfig = null
+        const getAwsConfig = async (key) => {
+            if (awsConfig === null) {
+                const resp = await fetch('/login/config.json')
+                awsConfig = await resp.json()
+            }
+
+            const item = awsConfig.filter((item) => (item.OutputKey === key))
+            return (item.length > 0) ? item[0].OutputValue : null
+        }
+
+        (async () => {
+            const userPoolId = await getAwsConfig('UserPoolId')
+            const userPoolClientId = await getAwsConfig('UserPoolClientId')
+
+            const hashString = document.location.hash.substring(1);
+            const urlParams = new URLSearchParams(hashString);
+            const idToken = urlParams.get('id_token')
+            const accessToken = urlParams.get('access_token')
+            const auth = { idToken, accessToken }
+            console.log({ auth })
+            localStorage.setItem('auth', JSON.stringify(auth, null, 2))
+
+            // redirecting with authorization tokens
+            document.location = "/login/auth/?" + document.location.hash.substring(1)
+        })()
     </script>
 </body>
 

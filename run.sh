@@ -324,6 +324,9 @@ build-content() {
     pushd "${FRONTEND_SOURCE_PATH}"
     npm run build
     popd
+
+    # make aws resource configuration and identifiers available
+    cp tmp/dev-private-website-outputs.json frontend/public/login/config.json
 }
 
 _publish-content() {

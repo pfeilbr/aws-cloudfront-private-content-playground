@@ -363,6 +363,7 @@ const handler = async (event, context, callback) => {
     return response;
   } else {
     // pass through request to S3
+    log({ request });
     return request;
   }
 };

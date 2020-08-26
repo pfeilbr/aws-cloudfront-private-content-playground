@@ -101,15 +101,17 @@ const mockGetApiResponse = async () => {
 };
 
 const getApiResponse = async () => {
-  // const resp = await fetch("/api/", {
-  //   method: "GET",
-  //   headers: {
-  //     "Content-Type": "application/json",
-  //   },
-  //   credentials: "include",
-  // });
-  // const data = await resp.json();
-  const data = await mockGetApiResponse();
+  const auth = JSON.parse(localStorage.getItem("auth"));
+  const resp = await fetch("/api/", {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${auth.idToken}`,
+    },
+    credentials: "include",
+  });
+  const data = await resp.json();
+  //const data = await mockGetApiResponse();
   console.log(JSON.stringify(data, null, 2));
   return data;
 };
