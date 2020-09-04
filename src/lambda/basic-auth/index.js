@@ -7,7 +7,8 @@ const fs = require("fs");
 
 const log = (o) => console.log(JSON.stringify(o, null, 2));
 
-const UsersSecret = `arn:aws:secretsmanager:us-east-1:529276214230:secret:UsersSecret-CTvtLRJcyv5c-HKzBxa`;
+// TODO: move to ssm parameter store
+const UsersSecret = `arn:aws:secretsmanager:us-east-1:529276214230:secret:UsersSecret-CTvtLRJcyv5c-HKzBxa-e5Fd3r`;
 let userAuthStrings = null;
 
 const loadUserAuthStrings = async () => {
