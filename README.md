@@ -15,6 +15,12 @@ This infrastructure provisioning and deployment pipeline performs an atomic depl
 
 ---
 
+## Architecture
+
+![](private-static-content-hosting-aws-system-architecture.png)
+
+---
+
 ## Prerequisites
 
 * [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html) - [configured](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html) with AWS credentials
