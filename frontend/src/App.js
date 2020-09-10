@@ -99,6 +99,9 @@ const mockGetApiResponse = async () => {
   };
 };
 
+const isLocal = () => /localhost/.test(document.location.host);
+const isStaging = () => /staging/.test(document.location.host);
+
 const getApiResponse = async () => {
   let auth = null;
   const authLocalStorageKey = "auth";
@@ -194,7 +197,7 @@ function App() {
           alt="logo"
         />
         <p>You are viewing "private" content from CloudFront.</p>
-        <ApiDemoComponent />
+        {isStaging() || isLocal() ? "" : <ApiDemoComponent />}
         <a
           className="App-link"
           href="https://github.com/pfeilbr/aws-cloudfront-private-content-playground"

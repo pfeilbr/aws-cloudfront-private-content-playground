@@ -1,6 +1,9 @@
 // basic auth
 "use strict";
 
+const SSM = require("aws-sdk/clients/ssm");
+const ssm = new SSM();
+
 const SecretsManager = require("aws-sdk/clients/secretsmanager");
 const secretsmanager = new SecretsManager();
 const fs = require("fs");
@@ -8,21 +11,37 @@ const fs = require("fs");
 const log = (o) => console.log(JSON.stringify(o, null, 2));
 
 // TODO: move to ssm parameter store
-const UsersSecret = `arn:aws:secretsmanager:us-east-1:529276214230:secret:UsersSecret-CTvtLRJcyv5c-HKzBxa-e5Fd3r-jlQiIs`;
+const UsersSecretSSMParameterStorePath = "/dev-private-website/UsersSecret";
+
 let userAuthStrings = null;
 
+const getSSMParameter = async (path) => {
+  const params = {
+    Name: UsersSecretSSMParameterStorePath,
+  };
+  log({ params });
+  const resp = await ssm.getParameter(params).promise();
+  log({ resp });
+  return resp.Parameter.Value;
+};
+
 const loadUserAuthStrings = async () => {
+  const secretArn = await getSSMParameter(UsersSecretSSMParameterStorePath);
   const resp = await secretsmanager
     .getSecretValue({
-      SecretId: `${UsersSecret}`,
+      SecretId: secretArn,
     })
     .promise();
   const users = JSON.parse(resp.SecretString).users;
+  log({ users });
   userAuthStrings = users.map(
     (user) =>
       "Basic " +
-      new Buffer(user.username + ":" + user.password).toString("base64")
+      Buffer.from(user.username + ":" + user.password, "utf8").toString(
+        "base64"
+      )
   );
+  log({ userAuthStrings });
 };
 
 exports.handler = async (event, context, callback) => {

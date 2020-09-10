@@ -44,7 +44,7 @@ display_usage() {
     echo -e "\trun publish-content staging|prod [--blue-green-publish] [--apply-routing-rules] [--invalidate-cloudfront-cache]"
     echo -e "\trun tag-and-trigger-publish"
     echo -e "\trun open-website staging|prod"
-    echo -e "\trun local-lambda-test"
+    echo -e "\trun local-lambda-test [--skip-build]"
     echo -e "\n"
     
 }
@@ -79,6 +79,10 @@ while (( "$#" )); do
       INVALIDATE_CLOUDFRONT_CACHE=1
       shift
       ;;
+    -s|--skip-build)
+      SKIP_BUILD=1
+      shift
+      ;;      
     -m|--message)
       if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
         MESSAGE=$2
@@ -405,6 +409,16 @@ tag-and-trigger-publish() {
 }
 
 local-lambda-test() {
+    
+
+    if [ -n "$SKIP_BUILD" ]; then
+        echo -e "skipping \"build-lambdas\" (--skip-build)"
+    else
+        echo -e "calling \"build-lambdas\""
+        build-lambdas ""
+    fi
+
+
     sam local invoke -e src/lambda/login/event.json "LambdaEdgeLoginFunction"
     sam local invoke -e src/lambda/decode-verify-jwt/event.json "DecodeVerifyJwtFunction"
     sam local invoke -e src/lambda/basic-auth/event.json "LambdaEdgeAuthFunction"    

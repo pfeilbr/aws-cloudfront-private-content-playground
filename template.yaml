@@ -613,6 +613,13 @@ Resources:
                   Action:
                     - "secretsmanager:GetSecretValue"
                   Resource: !Ref UsersSecret
+                - Effect: "Allow"
+                  Action:
+                    - "ssm:GetParameters"
+                    - "ssm:GetParameter"
+                    - "ssm:GetParametersByPath"
+                  Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${UsersSecretParameter}"    
+
         AssumeRolePolicyDocument:
           Version: "2012-10-17"
           Statement:
@@ -693,6 +700,15 @@ Resources:
         yfdncYK/oOd6+v1ujKfT53jAuUIpWx+BJYp8PKBtHT7OYUsWZnKAHwDM9NDkKMR2
         vmy5p7BZyC+KwJc/143U41hqzaSPk+SmiWPwtneGCx3n4Ada7Sls
         -----END RSA PRIVATE KEY-----
+
+  UsersSecretParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/UsersSecret"
+      Description: users credentials store.
+      Type: String
+      Value: !Ref UsersSecret
+
 
   UsersSecret:
     Type: "AWS::SecretsManager::Secret"
